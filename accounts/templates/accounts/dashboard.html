@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Vehicle Maintenance Tracker{% endblock %}
+
+{% block content %}
+    <h2>Welcome, {{ user.username }}</h2>
+
+    <p>Email: {{ user.email }}</p>
+
+    <section>
+        <h3>My Garage</h3>
+
+        <p>Manage your vehicles and maintenance history.</p>
+
+        <a href="{% url 'vehicles:vehicle-list' %}">
+            View My Vehicles
+        </a>
+    </section>
+{% endblock %}

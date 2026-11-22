@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Vehicles</title>
+</head>
+<body>
+<h1>Welcome, {{ user.username }}</h1>
+{% for vehicle in vehicles %}
+    <p>{{ vehicle.brand }} {{ vehicle.model }} ({{ vehicle.year }}) with mileage {{ vehicle.current_mileage }}</p>
+    <a href="{% url "vehicles:vehicle-detail" vehicle.pk %}">View Details</a>
+{% empty %}
+    <p>You haven't added any vehicles yet.</p>
+{% endfor %}
+<a href="{% url "accounts:account-dashboard" %}">Dashboard</a>
+</body>
+</html>

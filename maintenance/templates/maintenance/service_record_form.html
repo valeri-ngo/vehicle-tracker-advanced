@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>
+        {% if object %}
+            Edit Service Record
+        {% else %}
+            Add Service Record
+        {% endif %}
+    </h1>
+
+    <h2>{{ vehicle.brand }} {{ vehicle.model }}</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button type="submit">
+            {% if object %}Save Changes{% else %}Add Service Record{% endif %}
+        </button>
+    </form>
+
+    <a href="{% url 'maintenance:service-record-list' vehicle.pk %}">
+        Back to Service History
+    </a>
+{% endblock %}

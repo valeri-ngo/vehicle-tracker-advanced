@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{{ vehicle.brand }} {{ vehicle.model }}</h1>
+    <table>
+        <thead>
+        <tr>
+            <th>Date</th>
+            <th>Service Type</th>
+            <th>Mileage</th>
+            <th>Cost</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for record in service_records %}
+            <tr>
+                <td>{{ record.service_date }}</td>
+                <td>
+                    <a href="{% url 'maintenance:service-record-detail' record.pk %}">{{ record.get_service_type_display }}</a>
+                </td>
+                <td>{{ record.mileage }}</td>
+                <td>{{ record.cost }}</td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="4">No service records yet.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{% url 'maintenance:service-record-create' vehicle.pk %}">Add Service Record</a>
+    <a href="{% url "vehicles:vehicle-detail" vehicle.pk %}">Back to Vehicle</a>
+{% endblock %}

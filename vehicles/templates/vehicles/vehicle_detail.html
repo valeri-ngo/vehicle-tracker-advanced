@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Detail</title>
+</head>
+<body>
+<h1>{{ vehicle.brand }} {{ vehicle.model }}</h1>
+<p>{{ vehicle.year }}</p>
+<p>{{ vehicle.current_mileage }}</p>
+<p>{{ vehicle.created_at|date:"d.m.Y H:i" }}</p>
+<a href="{% url "vehicles:vehicle-update" vehicle.pk %}">Edit Vehicle</a>
+<a href="{% url "vehicles:vehicle-list" %}">Back to My Vehicles</a>
+<a href="{% url "vehicles:vehicle-delete" vehicle.pk %}">Delete vehicle</a>
+<a href="{% url "vehicles:odometer-create" vehicle.pk %}">Add mileage</a>
+<a href="{% url 'maintenance:service-record-create' vehicle.pk %}">Add Service Record</a>
+</body>
+</html>

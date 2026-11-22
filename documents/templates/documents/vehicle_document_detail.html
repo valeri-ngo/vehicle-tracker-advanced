@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>{{ document.get_document_type_display }}</h1>
+
+    <h2>{{ document.vehicle.brand }} {{ document.vehicle.model }}</h2>
+
+    <p>Expires On: {{ document.expires_on|date:"d.m.Y" }}</p>
+
+    <p>
+        Reminder:
+        {% if document.notifications_enabled %}
+            {{ document.reminder_days_before }} days before
+        {% else %}
+            Disabled
+        {% endif %}
+    </p>
+
+    <p>
+        Status:
+        {% if document.is_expired %}
+            Expired
+        {% elif document.reminder_due %}
+            Expiring Soon
+        {% else %}
+            Valid
+        {% endif %}
+    </p>
+
+    <p>Notes: {{ document.notes|default:"-" }}</p>
+
+    <a href="{% url 'documents:vehicle-document-update' document.pk %}">
+        Edit Document
+    </a>
+
+    <a href="{% url 'documents:vehicle-document-delete' document.pk %}">
+        Delete Document
+    </a>
+
+    <a href="{% url 'documents:vehicle-document-list' document.vehicle.pk %}">
+        Back to Documents
+    </a>
+{% endblock %}

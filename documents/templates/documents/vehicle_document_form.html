@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>
+        {% if object %}
+            Edit Vehicle Document
+        {% else %}
+            Add Vehicle Document
+        {% endif %}
+    </h1>
+
+    <h2>{{ vehicle.brand }} {{ vehicle.model }}</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button type="submit">Save Document</button>
+    </form>
+
+    <a href="{% url 'vehicles:vehicle-detail' vehicle.pk %}">
+        Back to Vehicle
+    </a>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>{{ service_record.get_service_type_display }}</h1>
+    <p>{{ service_record.service_date }}</p>
+    <p>{{ service_record.description }}</p>
+    <p>{{ service_record.mileage }}</p>
+    <p>{{ service_record.cost }}</p>
+
+    <a href="{% url 'maintenance:service-record-list' service_record.vehicle.pk %}">Back to Service History</a>
+    <a href="{% url 'maintenance:service-record-update' service_record.pk %}">
+        Edit Service Record
+    </a>
+    <a href="{% url 'maintenance:service-record-delete' service_record.pk %}">
+        Delete Service Record
+    </a>
+{% endblock %}

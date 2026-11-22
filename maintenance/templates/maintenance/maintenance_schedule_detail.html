@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>{{ maintenance_schedule.vehicle.brand }} {{ maintenance_schedule.vehicle.model }}</h1>
+    <p>Service: {{ maintenance_schedule.get_service_type_display }}</p>
+    <p>Description: {{ maintenance_schedule.description }}</p>
+    <p>Due Date: {{ maintenance_schedule.due_date|default_if_none:"-" }}</p>
+    <p>Due Mileage: {{ maintenance_schedule.due_mileage|default_if_none:"-" }}</p>
+    <p>{% if maintenance_schedule.is_completed %}
+        Completed
+    {% else %}
+        Pending
+    {% endif %}
+    </p>
+    <a href="{% url 'maintenance:maintenance-schedule-list' maintenance_schedule.vehicle.pk %}">Back to schedule
+        list.</a>
+    <a href="{% url 'maintenance:maintenance-schedule-update' maintenance_schedule.pk %}">
+        Edit Schedule
+    </a>
+
+    <a href="{% url 'maintenance:maintenance-schedule-delete' maintenance_schedule.pk %}">
+        Delete Schedule
+    </a>
+{% endblock %}

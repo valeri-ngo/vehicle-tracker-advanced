@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Login | Vehicle Maintenance Tracker{% endblock %}
+
+{% block content %}
+    <h2>Login</h2>
+
+    {% if user.is_authenticated %}
+        <p>You are already logged in.</p>
+        <a href="{% url 'accounts:account-dashboard' %}">
+            Go to Dashboard
+        </a>
+    {% else %}
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+
+            <input type="hidden" name="next" value="{{ next }}">
+            <button type="submit">Login</button>
+        </form>
+    {% endif %}
+{% endblock %}

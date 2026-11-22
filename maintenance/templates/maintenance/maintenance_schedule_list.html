@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>{{ vehicle.brand }} {{ vehicle.model }}</h1>
+    <table>
+        <thead>
+        <tr>
+            <th>Service Type</th>
+            <th>Due Date</th>
+            <th>Due Mileage</th>
+            <th>Completed</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for schedule in maintenance_schedules %}
+            <tr>
+                <td>
+                    <a href="{% url 'maintenance:maintenance-schedule-detail' schedule.pk %}">
+                        {{ schedule.get_service_type_display }}
+                    </a>
+                </td>
+                <td>{{ schedule.due_date|default_if_none:"-" }}</td>
+                <td>{{ schedule.due_mileage|default_if_none:"-" }}</td>
+                <td>
+                    {% if schedule.is_completed %}
+                        Yes
+                    {% else %}
+                        No
+                    {% endif %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="4">No scheduled services yet.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <a href="{% url 'maintenance:maintenance-schedule-create' vehicle.pk %}">Add Maintenance Schedule</a>
+    <a href="{% url 'vehicles:vehicle-detail' vehicle.pk %}">Back to Vehicle</a>
+{% endblock %}

@@ -1,0 +1,8 @@
+
+[tool.mypy]
+python_version = "3.14"
+plugins = ["mypy_django_plugin.main"]
+check_untyped_defs = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings"

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>
+        {% if object %}
+            Edit Maintenance Schedule
+        {% else %}
+            Schedule Maintenance
+        {% endif %}
+    </h1>
+
+    <h2>{{ vehicle.brand }} {{ vehicle.model }}</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button type="submit">
+            {% if object %}
+                Save Changes
+            {% else %}
+                Save Schedule
+            {% endif %}
+        </button>
+    </form>
+
+    <a href="{% url 'maintenance:maintenance-schedule-list' vehicle.pk %}">
+        Back to Maintenance Schedules
+    </a>
+{% endblock %}

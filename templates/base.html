@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>
+        {% block title %}
+            Vehicle Maintenance Tracker
+        {% endblock %}
+    </title>
+</head>
+
+<body>
+<header>
+    <h1>Vehicle Maintenance Tracker</h1>
+
+    {% include "includes/navbar.html" %}
+</header>
+
+{% include "includes/messages.html" %}
+
+<main>
+    {% block content %}
+    {% endblock %}
+</main>
+
+<footer>
+    <p>Vehicle Maintenance Tracker</p>
+</footer>
+</body>
+</html>
