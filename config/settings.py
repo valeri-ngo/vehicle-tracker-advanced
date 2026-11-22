@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -124,7 +125,7 @@ AUTH_USER_MODEL = "accounts.Account"
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Sofia"
 
 USE_I18N = True
 
@@ -148,3 +149,13 @@ MAILERS = {
 
 
 LOGIN_URL = "accounts:account-login"
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
+
+CELERY_TIMEZONE = "Europe/Sofia"
+CELERY_BEAT_SCHEDULE = {
+    "notifications.tasks.check_document_reminders": {
+        "task": "notifications.tasks.check_document_reminders",
+        "schedule": crontab(hour=9, minute=0),
+    },
+}

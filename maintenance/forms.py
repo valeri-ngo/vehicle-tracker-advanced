@@ -3,10 +3,12 @@ from typing import ClassVar
 from django import forms
 from django.utils import timezone
 
-from maintenance.models import MaintenanceSchedule, ServiceRecord
+from maintenance.models import MaintenanceSchedule, Part, ServiceRecord
 
 
 class ServiceRecordForm(forms.ModelForm):
+    """Validate and manage service record form data."""
+
     class Meta:
         model = ServiceRecord
         fields = (
@@ -26,6 +28,8 @@ class ServiceRecordForm(forms.ModelForm):
         }
 
     def clean_service_date(self):
+        """Ensure the service date is not in the future."""
+
         service_date = self.cleaned_data["service_date"]
 
         if service_date > timezone.localdate():
@@ -35,6 +39,8 @@ class ServiceRecordForm(forms.ModelForm):
 
 
 class MaintenanceScheduleForm(forms.ModelForm):
+    """Validate and manage maintenance schedule form data."""
+
     class Meta:
         model = MaintenanceSchedule
         fields = (
@@ -52,6 +58,8 @@ class MaintenanceScheduleForm(forms.ModelForm):
         }
 
     def clean(self):
+        """Require at least a due date or a due mileage."""
+
         cleaned_data = super().clean()
 
         due_date = cleaned_data.get("due_date")
@@ -61,3 +69,15 @@ class MaintenanceScheduleForm(forms.ModelForm):
             raise forms.ValidationError("Provide at least a date or a mileage.")
 
         return cleaned_data
+
+
+class PartForm(forms.ModelForm):
+    """Provide a form for creating and updating vehicle parts."""
+
+    class Meta:
+        model = Part
+        fields = (
+            "name",
+            "manufacturer",
+            "part_number",
+        )

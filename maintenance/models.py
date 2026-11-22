@@ -1,21 +1,15 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 
+from common.basic_models import CreatedAtModel
+from maintenance.abstract_models import ServiceDetailsModel
 
-class ServiceRecord(models.Model):
-    class ServiceType(models.TextChoices):
-        OIL_CHANGE = "oil_change", "Oil change"
-        FILTERS = "filters", "Filters"
-        BRAKES = "brakes", "Brakes"
-        TIMING_BELT = "timing_belt", "Timing belt / Chain"
-        TIRES = "tires", "Tires"
-        SUSPENSION = "suspension", "Suspension"
-        TRANSMISSION = "transmission", "Transmission"
-        COOLING = "cooling", "Cooling System"
-        REPAIR = "repair", "General Repair"
-        Other = "other", "Other"
+
+class ServiceRecord(ServiceDetailsModel, CreatedAtModel):
+    """Represent a completed vehicle service with its costs and parts."""
 
     vehicle = models.ForeignKey(
         to="vehicles.Vehicle",
@@ -23,18 +17,15 @@ class ServiceRecord(models.Model):
         related_name="service_records",
     )
 
-    service_type = models.CharField(
-        max_length=30,
-        choices=ServiceType,
-    )
-
-    description = models.TextField(
-        blank=True,
-    )
-
     mileage = models.PositiveIntegerField()
 
     service_date = models.DateField()
+
+    parts = models.ManyToManyField(
+        "Part",
+        blank=True,
+        related_name="service_records",
+    )
 
     cost = models.DecimalField(
         max_digits=10,
@@ -44,31 +35,22 @@ class ServiceRecord(models.Model):
         ],
     )
 
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-    )
-
     def __str__(self):
-        return f"{self.vehicle} - {self.service_type}"
+        """Return the vehicle and service type as a readable string."""
+
+        return f"{self.vehicle} - {self.get_service_type_display()}"
 
     class Meta:
         ordering = ("-service_date",)
 
 
-class MaintenanceSchedule(models.Model):
+class MaintenanceSchedule(ServiceDetailsModel, CreatedAtModel):
+    """Represent scheduled vehicle maintenance based on date or mileage."""
+
     vehicle = models.ForeignKey(
         to="vehicles.Vehicle",
         on_delete=models.CASCADE,
         related_name="maintenance_schedules",
-    )
-
-    service_type = models.CharField(
-        max_length=30,
-        choices=ServiceRecord.ServiceType,
-    )
-
-    description = models.TextField(
-        blank=True,
     )
 
     due_date = models.DateField(
@@ -81,16 +63,49 @@ class MaintenanceSchedule(models.Model):
         blank=True,
     )
 
+    parts = models.ManyToManyField(
+        "Part",
+        blank=True,
+        related_name="maintenance_schedules",
+    )
+
     is_completed = models.BooleanField(
         default=False,
     )
 
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-    )
+    def __str__(self):
+        """Return the vehicle and scheduled service type as a readable string."""
+
+        return f"{self.vehicle} - {self.get_service_type_display()}"
 
     class Meta:
         ordering = ("-created_at",)
 
+
+class Part(CreatedAtModel):
+    """Represent a reusable vehicle part owned by a user."""
+
+    owner = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="parts",
+    )
+
+    name = models.CharField(
+        max_length=100,
+    )
+
+    manufacturer = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+
+    part_number = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+
     def __str__(self):
-        return f"{self.vehicle} - {self.get_service_type_display()}"
+        """Return the part name as its string representation."""
+
+        return self.name

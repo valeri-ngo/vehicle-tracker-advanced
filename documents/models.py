@@ -3,10 +3,11 @@ from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 
+from common.basic_models import CreatedAtModel
 from vehicles.models import Vehicle
 
 
-class VehicleDocument(models.Model):
+class VehicleDocument(CreatedAtModel):
     class DocumentType(models.TextChoices):
         VEHICLE_INSURANCE = "vehicle_insurance", "Vehicle Insurance"
         CASCO_INSURANCE = "casco", "Casco Insurance"
@@ -38,10 +39,6 @@ class VehicleDocument(models.Model):
 
     notifications_enabled = models.BooleanField(
         default=True,
-    )
-
-    created_at = models.DateTimeField(
-        auto_now_add=True,
     )
 
     class Meta:

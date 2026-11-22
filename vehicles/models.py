@@ -2,8 +2,10 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from common.basic_models import CreatedAtModel
 
-class Vehicle(models.Model):
+
+class Vehicle(CreatedAtModel):
     owner = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -24,15 +26,11 @@ class Vehicle(models.Model):
         default=0,
     )
 
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-    )
-
     def __str__(self):
         return f"{self.brand} {self.model} ({self.year})"
 
 
-class OdometerEntry(models.Model):
+class OdometerEntry(CreatedAtModel):
     vehicle = models.ForeignKey(
         to="Vehicle",
         on_delete=models.CASCADE,
@@ -45,11 +43,8 @@ class OdometerEntry(models.Model):
         default=timezone.now,
     )
 
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-    )
-
     class Meta:
+        ordering = ("-recorded_at",)
         constraints = (
             models.UniqueConstraint(
                 fields=["vehicle", "recorded_at"],
