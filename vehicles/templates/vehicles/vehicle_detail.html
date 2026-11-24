@@ -15,5 +15,12 @@
 <a href="{% url "vehicles:vehicle-delete" vehicle.pk %}">Delete vehicle</a>
 <a href="{% url "vehicles:odometer-create" vehicle.pk %}">Add mileage</a>
 <a href="{% url 'maintenance:service-record-create' vehicle.pk %}">Add Service Record</a>
+<a href="{% url 'maintenance:maintenance-schedule-list' vehicle.pk %}">
+    Maintenance Schedules
+</a>
+
+<a href="{% url 'maintenance:maintenance-schedule-create' vehicle.pk %}">
+    Add Maintenance Schedule
+</a>
 </body>
 </html>

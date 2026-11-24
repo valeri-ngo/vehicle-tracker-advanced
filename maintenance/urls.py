@@ -6,6 +6,11 @@ from maintenance.views import (
     MaintenanceScheduleDetailView,
     MaintenanceScheduleListView,
     MaintenanceScheduleUpdateView,
+    PartCreateView,
+    PartDeleteView,
+    PartDetailView,
+    PartListView,
+    PartUpdateView,
     ServiceRecordCreateView,
     ServiceRecordDeleteView,
     ServiceRecordDetailView,
@@ -51,6 +56,34 @@ maintenance_schedule_detail_paths = [
     ),
 ]
 
+maintenance_parts_url = [
+    path(
+        "",
+        view=PartListView.as_view(),
+        name="part-list",
+    ),
+    path(
+        "create/",
+        view=PartCreateView.as_view(),
+        name="part-create",
+    ),
+    path(
+        "<int:pk>/",
+        view=PartDetailView.as_view(),
+        name="part-detail",
+    ),
+    path(
+        "<int:pk>/edit/",
+        view=PartUpdateView.as_view(),
+        name="part-update",
+    ),
+    path(
+        "<int:pk>/delete/",
+        view=PartDeleteView.as_view(),
+        name="part-delete",
+    ),
+]
+
 urlpatterns = [
     path(
         "<int:pk>/",
@@ -79,5 +112,9 @@ urlpatterns = [
     path(
         "schedules/records/<int:pk>/",
         include(maintenance_schedule_detail_paths),
+    ),
+    path(
+        "parts/",
+        include(maintenance_parts_url),
     ),
 ]

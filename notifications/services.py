@@ -12,8 +12,13 @@ def create_document_reminder(document):
     if not document.reminder_due:
         return None, False
 
+    owner = document.vehicle.owner
+
+    if not owner.has_perm("documents.use_document_reminders"):
+        return None, False
+
     defaults = {
-        "recipient": document.vehicle.owner,
+        "recipient": owner,
         "notification_type": Notification.NotificationTypes.DOCUMENT,
         "title": f"{document.get_document_type_display()} expiration",
         "message": f"{document.get_document_type_display()} - {document.expires_on.isoformat()}",

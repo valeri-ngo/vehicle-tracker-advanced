@@ -3,10 +3,11 @@ from typing import ClassVar
 from django import forms
 from django.utils import timezone
 
+from maintenance.form_mixins import UserPartsQuerysetMixin
 from maintenance.models import MaintenanceSchedule, Part, ServiceRecord
 
 
-class ServiceRecordForm(forms.ModelForm):
+class ServiceRecordForm(UserPartsQuerysetMixin, forms.ModelForm):
     """Validate and manage service record form data."""
 
     class Meta:
@@ -17,14 +18,16 @@ class ServiceRecordForm(forms.ModelForm):
             "mileage",
             "service_date",
             "cost",
+            "parts",
         )
-        widgets: ClassVar[dict[str, forms.DateInput]] = {
+        widgets: ClassVar[dict[str, forms.Widget]] = {
             "service_date": forms.DateInput(
                 attrs={
                     "type": "date",
                 },
                 format="%Y-%m-%d",
             ),
+            "parts": forms.CheckboxSelectMultiple(),
         }
 
     def clean_service_date(self):
@@ -38,7 +41,7 @@ class ServiceRecordForm(forms.ModelForm):
         return service_date
 
 
-class MaintenanceScheduleForm(forms.ModelForm):
+class MaintenanceScheduleForm(UserPartsQuerysetMixin, forms.ModelForm):
     """Validate and manage maintenance schedule form data."""
 
     class Meta:
@@ -49,12 +52,15 @@ class MaintenanceScheduleForm(forms.ModelForm):
             "due_date",
             "due_mileage",
             "is_completed",
+            "parts",
         )
-        widgets: ClassVar[dict[str, forms.DateInput]] = {
+
+        widgets: ClassVar[dict[str, forms.Widget]] = {
             "due_date": forms.DateInput(
                 attrs={"type": "date"},
                 format="%Y-%m-%d",
             ),
+            "parts": forms.CheckboxSelectMultiple(),
         }
 
     def clean(self):

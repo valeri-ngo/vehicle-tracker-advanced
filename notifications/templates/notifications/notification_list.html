@@ -1,0 +1,21 @@
+<h1>Notifications</h1>
+
+{% for notification in notifications %}
+<article>
+    <h2>{{ notification.title }}</h2>
+    <p>{{ notification.message }}</p>
+    <p>{{ notification.created_at }}</p>
+
+    {% if not notification.is_read %}
+    <form method="post"
+          action="{% url 'notifications:notification-mark-as-read' notification.pk %}">
+        {% csrf_token %}
+        <button type="submit">Mark as read</button>
+    </form>
+    {% else %}
+    <p>Read</p>
+    {% endif %}
+</article>
+{% empty %}
+<p>You have no notifications.</p>
+{% endfor %}

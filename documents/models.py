@@ -43,6 +43,12 @@ class VehicleDocument(CreatedAtModel):
 
     class Meta:
         ordering = ("expires_on",)
+        permissions = (
+            (
+                "use_document_reminders",
+                "Can use automatic reminders.",
+            ),
+        )
 
     def __str__(self):
         return f"{self.vehicle} - {self.get_document_type_display()}"

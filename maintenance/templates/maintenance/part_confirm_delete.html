@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <section>
+        <h1>Delete Part</h1>
+
+        <p>
+            Are you sure you want to delete
+            <strong>{{ part.name }}</strong>?
+        </p>
+
+        <p>
+            This action cannot be undone.
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <button type="submit">
+                Yes, Delete Part
+            </button>
+        </form>
+
+        <a href="{% url 'maintenance:part-detail' part.pk %}">
+            Cancel
+        </a>
+    </section>
+{% endblock %}

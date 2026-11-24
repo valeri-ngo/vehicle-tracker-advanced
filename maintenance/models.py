@@ -42,6 +42,12 @@ class ServiceRecord(ServiceDetailsModel, CreatedAtModel):
 
     class Meta:
         ordering = ("-service_date",)
+        constraints = (
+            models.CheckConstraint(
+                condition=models.Q(cost__gte=0),
+                name="service_record_cost_non_negative",
+            ),
+        )
 
 
 class MaintenanceSchedule(ServiceDetailsModel, CreatedAtModel):
@@ -80,6 +86,15 @@ class MaintenanceSchedule(ServiceDetailsModel, CreatedAtModel):
 
     class Meta:
         ordering = ("-created_at",)
+        constraints = (
+            models.CheckConstraint(
+                condition=(
+                    models.Q(due_date__isnull=False)
+                    | models.Q(due_mileage__isnull=False)
+                ),
+                name="maintenance_schedule_requires_date_or_mileage",
+            ),
+        )
 
 
 class Part(CreatedAtModel):

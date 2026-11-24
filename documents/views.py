@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import QuerySet
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -11,6 +12,7 @@ from common.mixins import (
     OwnedVehicleRecordMixin,
     RedirectToDetailMixin,
     RedirectToVehicleListMixin,
+    SubscriptionQuotaMixin,
     VehicleCreateMixin,
     VehicleListMixin,
 )
@@ -20,11 +22,22 @@ from documents.models import VehicleDocument
 
 class VehicleDocumentCreateView(
     LoginRequiredMixin,
+    SubscriptionQuotaMixin,
     VehicleCreateMixin,
     CreateView,
 ):
+    """Create a vehicle document within subscription quotas."""
+
     form_class = VehicleDocumentForm
     template_name = "documents/vehicle_document_form.html"
+    quota_resource = "documents"
+
+    def get_quota_queryset(self) -> QuerySet:
+        """Return all vehicle documents owned by the current user."""
+
+        return VehicleDocument.objects.filter(
+            vehicle__owner=self.request.user,
+        )
 
 
 class VehicleDocumentListView(

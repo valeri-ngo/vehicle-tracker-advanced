@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <section>
+        <h1>Add New Part</h1>
+        <p>Add a new part to your personal parts catalog.</p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {{ form.as_p }}
+
+            <button type="submit">
+                Save Part
+            </button>
+        </form>
+
+        <a href="{% url 'maintenance:part-list' %}">
+            Back to Parts
+        </a>
+    </section>
+{% endblock %}

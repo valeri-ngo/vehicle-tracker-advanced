@@ -1,0 +1,12 @@
+<h1>Vehicle Maintenance Tracker</h1>
+
+<p>Manage your vehicles, maintenance and documents.</p>
+
+{% if user.is_authenticated %}
+<a href="{% url 'accounts:account-dashboard' %}">
+    Dashboard
+</a>
+{% else %}
+<a href="{% url 'accounts:account-login' %}">Login</a>
+<a href="{% url 'accounts:account-register' %}">Register</a>
+{% endif %}

@@ -2,6 +2,7 @@ from django import forms
 from django.utils import timezone
 
 from .models import OdometerEntry, Vehicle
+from .validators import validate_odometer_entry
 
 
 class VehicleCreateForm(forms.ModelForm):
@@ -46,6 +47,8 @@ class OdometerEntryForm(forms.ModelForm):
         return recorded_at
 
     def clean(self):
+        """Validate the chronological consistency of the submitted mileage."""
+
         cleaned_data = super().clean() or self.cleaned_data
 
         mileage = cleaned_data.get("mileage")
@@ -54,34 +57,13 @@ class OdometerEntryForm(forms.ModelForm):
         if mileage is None or recorded_at is None:
             return cleaned_data
 
-        entries = self.vehicle.odometer_entries
-
-        previous_entry = (
-            entries.filter(recorded_at__lt=recorded_at)
-            .order_by("-recorded_at", "-pk")
-            .first()
+        errors = validate_odometer_entry(
+            vehicle=self.vehicle,
+            mileage=mileage,
+            recorded_at=recorded_at,
         )
 
-        next_entry = (
-            entries.filter(recorded_at__gt=recorded_at)
-            .order_by("recorded_at", "pk")
-            .first()
-        )
+        for field, message in errors:
+            self.add_error(field, message)
 
-        if previous_entry is not None and mileage < previous_entry.mileage:
-            self.add_error("mileage", "Mileage cannot be lower than the previous one.")
-
-        if next_entry is not None and mileage > next_entry.mileage:
-            self.add_error("mileage", "Mileage cannot be higher than the next one.")
-
-        if entries.filter(recorded_at=recorded_at).exists():
-            self.add_error(
-                "recorded_at",
-                "An odometer entry already exists for this date and time.",
-            )
-
-        if not entries.exists() and mileage < self.vehicle.current_mileage:
-            self.add_error(
-                "mileage", "Mileage cannot be lower than the existing vehicle mileage."
-            )
         return cleaned_data

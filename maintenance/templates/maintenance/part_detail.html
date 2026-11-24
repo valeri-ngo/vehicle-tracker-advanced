@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <section>
+        <header>
+            <h1>{{ part.name }}</h1>
+            <p>Part Details</p>
+        </header>
+
+        <div>
+            <h2>Part Information</h2>
+
+            <p>
+                <strong>Name:</strong>
+                {{ part.name }}
+            </p>
+
+            <p>
+                <strong>Manufacturer:</strong>
+                {{ part.manufacturer|default:"Not specified" }}
+            </p>
+
+            <p>
+                <strong>Part Number:</strong>
+                {{ part.part_number|default:"Not specified" }}
+            </p>
+
+            <p>
+                <strong>Added on:</strong>
+                {{ part.created_at|date:"d M Y" }}
+            </p>
+        </div>
+
+
+        <nav>
+            <a href="{% url 'maintenance:part-update' part.pk %}">
+                Edit Part
+            </a>
+
+            <a href="{% url 'maintenance:part-list' %}">
+                Back to Parts
+            </a>
+            <a href="{% url 'maintenance:part-delete' part.pk %}">
+                Delete Part
+            </a>
+        </nav>
+
+    </section>
+{% endblock %}
