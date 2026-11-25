@@ -4,6 +4,12 @@ from django.db.models.functions import Lower
 
 
 class Account(AbstractUser):
+    """Represent a registered user of the vehicle maintenance platform.
+
+    Extend Django's authentication model with an optional phone number
+    and enforce case-insensitive uniqueness for non-empty email addresses.
+    """
+
     phone_number = models.CharField(
         max_length=20,
         blank=True,

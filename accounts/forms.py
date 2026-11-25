@@ -6,6 +6,12 @@ from .models import Account
 
 
 class AccountRegistrationForm(UserCreationForm):
+    """Handle account registration with email and password validation.
+
+    Extend Django's built-in registration form with a required email
+    address and an optional phone number.
+    """
+
     email = forms.EmailField(
         required=True,
     )
@@ -18,7 +24,13 @@ class AccountRegistrationForm(UserCreationForm):
             "phone_number",
         )
 
-    def clean_email(self):
+    def clean_email(self) -> str:
+        """Validate email uniqueness regardless of letter case.
+
+        Raise ValidationError if the address is already associated
+        with an existing account.
+        """
+
         email = self.cleaned_data["email"]
 
         email_exists = Account.objects.filter(email__iexact=email).exists()
