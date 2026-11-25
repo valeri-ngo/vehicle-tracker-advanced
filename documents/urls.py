@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 
 from documents.views import (
     VehicleDocumentCreateView,
@@ -9,6 +9,24 @@ from documents.views import (
 )
 
 app_name = "documents"
+
+vehicle_document_detail_patterns = [
+    path(
+        "",
+        VehicleDocumentDetailView.as_view(),
+        name="vehicle-document-detail",
+    ),
+    path(
+        "edit/",
+        VehicleDocumentUpdateView.as_view(),
+        name="vehicle-document-update",
+    ),
+    path(
+        "delete/",
+        VehicleDocumentDeleteView.as_view(),
+        name="vehicle-document-delete",
+    ),
+]
 
 urlpatterns = [
     path(
@@ -23,17 +41,6 @@ urlpatterns = [
     ),
     path(
         "records/<int:pk>/",
-        VehicleDocumentDetailView.as_view(),
-        name="vehicle-document-detail",
-    ),
-    path(
-        "records/<int:pk>/edit/",
-        VehicleDocumentUpdateView.as_view(),
-        name="vehicle-document-update",
-    ),
-    path(
-        "records/<int:pk>/delete/",
-        VehicleDocumentDeleteView.as_view(),
-        name="vehicle-document-delete",
+        include(vehicle_document_detail_patterns),
     ),
 ]

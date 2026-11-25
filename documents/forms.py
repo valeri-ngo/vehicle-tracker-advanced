@@ -6,6 +6,12 @@ from documents.models import VehicleDocument
 
 
 class VehicleDocumentForm(forms.ModelForm):
+    """Handle the creation and editing of vehicle document metadata.
+
+    Allow users to specify expiration dates, reminder preferences
+    and additional notes without uploading actual documents.
+    """
+
     class Meta:
         model = VehicleDocument
 
@@ -17,7 +23,7 @@ class VehicleDocumentForm(forms.ModelForm):
             "notes",
         )
 
-        widgets: ClassVar[dict[str, forms.DateInput]] = {
+        widgets: ClassVar[dict[str, forms.Widget]] = {
             "expires_on": forms.DateInput(
                 attrs={"type": "date"},
                 format="%Y-%m-%d",

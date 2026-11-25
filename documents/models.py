@@ -8,7 +8,15 @@ from vehicles.models import Vehicle
 
 
 class VehicleDocument(CreatedAtModel):
+    """Represent document metadata associated with a vehicle.
+
+    Track expiration dates and reminder preferences without storing
+    actual document files.
+    """
+
     class DocumentType(models.TextChoices):
+        """Define the supported vehicle document categories."""
+
         VEHICLE_INSURANCE = "vehicle_insurance", "Vehicle Insurance"
         CASCO_INSURANCE = "casco", "Casco Insurance"
         TECHNICAL_INSPECTION = "inspection", "Technical Inspection"
@@ -50,15 +58,25 @@ class VehicleDocument(CreatedAtModel):
             ),
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Return the vehicle and document type as a readable string."""
+
         return f"{self.vehicle} - {self.get_document_type_display()}"
 
     @property
-    def is_expired(self):
+    def is_expired(self) -> bool:
+        """Determine whether the document's expiration date has passed."""
+
         return timezone.localdate() > self.expires_on
 
     @property
-    def reminder_due(self):
+    def reminder_due(self) -> bool:
+        """Determine whether the document is within its active reminder window.
+
+        Reminders are due only when notifications are enabled and the
+        expiration date has not passed.
+        """
+
         today = timezone.localdate()
 
         reminder_date = self.expires_on - timedelta(
