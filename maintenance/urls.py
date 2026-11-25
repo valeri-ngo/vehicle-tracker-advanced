@@ -20,7 +20,7 @@ from maintenance.views import (
 
 app_name = "maintenance"
 
-service_record_detail_paths = [
+service_record_detail_patterns = [
     path(
         "",
         ServiceRecordDetailView.as_view(),
@@ -38,7 +38,7 @@ service_record_detail_paths = [
     ),
 ]
 
-maintenance_schedule_detail_paths = [
+maintenance_schedule_detail_patterns = [
     path(
         "",
         MaintenanceScheduleDetailView.as_view(),
@@ -56,31 +56,38 @@ maintenance_schedule_detail_paths = [
     ),
 ]
 
-maintenance_parts_url = [
+part_detail_patterns = [
     path(
         "",
-        view=PartListView.as_view(),
+        PartDetailView.as_view(),
+        name="part-detail",
+    ),
+    path(
+        "edit/",
+        PartUpdateView.as_view(),
+        name="part-update",
+    ),
+    path(
+        "delete/",
+        PartDeleteView.as_view(),
+        name="part-delete",
+    ),
+]
+
+part_patterns = [
+    path(
+        "",
+        PartListView.as_view(),
         name="part-list",
     ),
     path(
         "create/",
-        view=PartCreateView.as_view(),
+        PartCreateView.as_view(),
         name="part-create",
     ),
     path(
         "<int:pk>/",
-        view=PartDetailView.as_view(),
-        name="part-detail",
-    ),
-    path(
-        "<int:pk>/edit/",
-        view=PartUpdateView.as_view(),
-        name="part-update",
-    ),
-    path(
-        "<int:pk>/delete/",
-        view=PartDeleteView.as_view(),
-        name="part-delete",
+        include(part_detail_patterns),
     ),
 ]
 
@@ -97,7 +104,7 @@ urlpatterns = [
     ),
     path(
         "records/<int:pk>/",
-        include(service_record_detail_paths),
+        include(service_record_detail_patterns),
     ),
     path(
         "schedules/<int:pk>/",
@@ -111,10 +118,10 @@ urlpatterns = [
     ),
     path(
         "schedules/records/<int:pk>/",
-        include(maintenance_schedule_detail_paths),
+        include(maintenance_schedule_detail_patterns),
     ),
     path(
         "parts/",
-        include(maintenance_parts_url),
+        include(part_patterns),
     ),
 ]

@@ -5,11 +5,15 @@ from django.core.validators import MinValueValidator
 from django.db import models
 
 from common.basic_models import CreatedAtModel
-from maintenance.abstract_models import ServiceDetailsModel
+from maintenance.helpers.abstract_models import ServiceDetailsModel
 
 
 class ServiceRecord(ServiceDetailsModel, CreatedAtModel):
-    """Represent a completed vehicle service with its costs and parts."""
+    """Represent a completed maintenance operation for a vehicle.
+
+    Store the service date, recorded mileage, cost and associated parts
+    as part of the vehicle's service history.
+    """
 
     vehicle = models.ForeignKey(
         to="vehicles.Vehicle",
@@ -35,7 +39,7 @@ class ServiceRecord(ServiceDetailsModel, CreatedAtModel):
         ],
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return the vehicle and service type as a readable string."""
 
         return f"{self.vehicle} - {self.get_service_type_display()}"
@@ -51,7 +55,11 @@ class ServiceRecord(ServiceDetailsModel, CreatedAtModel):
 
 
 class MaintenanceSchedule(ServiceDetailsModel, CreatedAtModel):
-    """Represent scheduled vehicle maintenance based on date or mileage."""
+    """Represent a planned maintenance operation for a vehicle.
+
+    Schedule maintenance by date, mileage or both, and track whether
+    the required service has been completed.
+    """
 
     vehicle = models.ForeignKey(
         to="vehicles.Vehicle",
@@ -79,7 +87,7 @@ class MaintenanceSchedule(ServiceDetailsModel, CreatedAtModel):
         default=False,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return the vehicle and scheduled service type as a readable string."""
 
         return f"{self.vehicle} - {self.get_service_type_display()}"
@@ -98,7 +106,11 @@ class MaintenanceSchedule(ServiceDetailsModel, CreatedAtModel):
 
 
 class Part(CreatedAtModel):
-    """Represent a reusable vehicle part owned by a user."""
+    """Represent a reusable part in the user's personal parts catalog.
+
+    Allow the same catalog entry to be associated with multiple service
+    records and maintenance schedules.
+    """
 
     owner = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
@@ -120,7 +132,7 @@ class Part(CreatedAtModel):
         blank=True,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return the part name as its string representation."""
 
         return self.name

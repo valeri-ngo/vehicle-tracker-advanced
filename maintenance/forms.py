@@ -1,14 +1,19 @@
-from typing import ClassVar
+from datetime import date
+from typing import Any, ClassVar
 
 from django import forms
 from django.utils import timezone
 
-from maintenance.form_mixins import UserPartsQuerysetMixin
+from maintenance.helpers.form_mixins import UserPartsQuerysetMixin
 from maintenance.models import MaintenanceSchedule, Part, ServiceRecord
 
 
 class ServiceRecordForm(UserPartsQuerysetMixin, forms.ModelForm):
-    """Validate and manage service record form data."""
+    """Handle the creation and editing of vehicle service records.
+
+    Restrict part selection to the user's personal catalog and prevent
+    service records from being dated in the future.
+    """
 
     class Meta:
         model = ServiceRecord
@@ -30,7 +35,7 @@ class ServiceRecordForm(UserPartsQuerysetMixin, forms.ModelForm):
             "parts": forms.CheckboxSelectMultiple(),
         }
 
-    def clean_service_date(self):
+    def clean_service_date(self) -> date:
         """Ensure the service date is not in the future."""
 
         service_date = self.cleaned_data["service_date"]
@@ -42,7 +47,11 @@ class ServiceRecordForm(UserPartsQuerysetMixin, forms.ModelForm):
 
 
 class MaintenanceScheduleForm(UserPartsQuerysetMixin, forms.ModelForm):
-    """Validate and manage maintenance schedule form data."""
+    """Handle the creation and editing of vehicle maintenance schedules.
+
+    Require a due date, due mileage or both, and restrict part selection
+    to the user's personal catalog.
+    """
 
     class Meta:
         model = MaintenanceSchedule
@@ -63,15 +72,15 @@ class MaintenanceScheduleForm(UserPartsQuerysetMixin, forms.ModelForm):
             "parts": forms.CheckboxSelectMultiple(),
         }
 
-    def clean(self):
+    def clean(self) -> dict[str, Any]:
         """Require at least a due date or a due mileage."""
 
-        cleaned_data = super().clean()
+        cleaned_data = super().clean() or self.cleaned_data
 
         due_date = cleaned_data.get("due_date")
         due_mileage = cleaned_data.get("due_mileage")
 
-        if not due_date and due_mileage is None:
+        if due_date is None and due_mileage is None:
             raise forms.ValidationError("Provide at least a date or a mileage.")
 
         return cleaned_data

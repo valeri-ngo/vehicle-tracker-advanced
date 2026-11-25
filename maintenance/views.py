@@ -1,5 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import QuerySet
+from django.forms.models import ModelForm
+from django.http import HttpResponse
 from django.urls import reverse_lazy
 from django.views.generic import (
     CreateView,
@@ -20,6 +22,7 @@ from common.mixins import (
     VehicleListMixin,
 )
 from maintenance.forms import MaintenanceScheduleForm, PartForm, ServiceRecordForm
+from maintenance.helpers.view_mixins import MaintenanceScheduleQuotaMixin
 from maintenance.models import MaintenanceSchedule, Part, ServiceRecord
 
 # --------------------------- SERVICE RECORD ---------------------------
@@ -32,13 +35,17 @@ class ServiceRecordCreateView(
     VehicleCreateMixin,
     CreateView,
 ):
-    """Create a new service record for a selected vehicle."""
+    """Handle part creation within the user's personal catalog.
+
+    Enforce subscription limits and assign ownership to the
+    authenticated user.
+    """
 
     form_class = ServiceRecordForm
     template_name = "maintenance/service_record_form.html"
     quota_resource = "service_records"
 
-    def get_quota_queryset(self) -> QuerySet:
+    def get_quota_queryset(self) -> QuerySet[ServiceRecord]:
         """Return all service records owned by the current user."""
 
         return ServiceRecord.objects.filter(
@@ -46,8 +53,12 @@ class ServiceRecordCreateView(
         )
 
 
-class ServiceRecordListView(LoginRequiredMixin, VehicleListMixin, ListView):
-    """List service records for a selected vehicle."""
+class ServiceRecordListView(
+    LoginRequiredMixin,
+    VehicleListMixin,
+    ListView,
+):
+    """List service records for a vehicle owned by the current user."""
 
     model = ServiceRecord
     template_name = "maintenance/service_record_list.html"
@@ -55,7 +66,7 @@ class ServiceRecordListView(LoginRequiredMixin, VehicleListMixin, ListView):
 
 
 class ServiceRecordDetailView(LoginRequiredMixin, OwnedVehicleRecordMixin, DetailView):
-    """Display the details of an existing service record."""
+    """Display an existing service record with ownership restrictions."""
 
     model = ServiceRecord
     template_name = "maintenance/service_record_detail.html"
@@ -69,7 +80,10 @@ class ServiceRecordUpdateView(
     RedirectToDetailMixin,
     UpdateView,
 ):
-    """Update an existing service record."""
+    """Update a service record owned by the current user.
+
+    Restrict part selection to the user's personal catalog.
+    """
 
     model = ServiceRecord
     form_class = ServiceRecordForm
@@ -81,7 +95,7 @@ class ServiceRecordUpdateView(
 class ServiceRecordDeleteView(
     LoginRequiredMixin, RedirectToVehicleListMixin, OwnedVehicleRecordMixin, DeleteView
 ):
-    """Delete an existing service record after confirmation."""
+    """Delete an owned service record after user confirmation."""
 
     model = ServiceRecord
     template_name = "maintenance/service_record_delete.html"
@@ -94,25 +108,21 @@ class ServiceRecordDeleteView(
 
 class MaintenanceScheduleCreateView(
     LoginRequiredMixin,
-    SubscriptionQuotaMixin,
+    MaintenanceScheduleQuotaMixin,
     UserFormKwargsMixin,
     VehicleCreateMixin,
     CreateView,
 ):
-    """Create a maintenance schedule for a selected vehicle."""
+    """Create a maintenance schedule for a vehicle owned by the user.
+
+    Enforce subscription limits only when creating an incomplete
+    maintenance schedule.
+    """
 
     form_class = MaintenanceScheduleForm
     template_name = "maintenance/maintenance_schedule_form.html"
-    quota_resource = "maintenance_schedules"
 
-    def get_quota_queryset(self) -> QuerySet:
-        """Returns all active maintenance schedules for the current user."""
-        return MaintenanceSchedule.objects.filter(
-            vehicle__owner=self.request.user,
-            is_completed=False,
-        )
-
-    def should_check_quota(self, form) -> bool:
+    def should_check_quota(self, form: ModelForm) -> bool:
         """Check the quota only when creating an incomplete schedule."""
 
         is_completed = form.cleaned_data["is_completed"]
@@ -125,7 +135,7 @@ class MaintenanceScheduleListView(
     VehicleListMixin,
     ListView,
 ):
-    """List maintenance schedules for a selected vehicle."""
+    """List maintenance schedules for a vehicle owned by the current user."""
 
     model = MaintenanceSchedule
     template_name = "maintenance/maintenance_schedule_list.html"
@@ -137,7 +147,7 @@ class MaintenanceScheduleDetailView(
     OwnedVehicleRecordMixin,
     DetailView,
 ):
-    """Display the details of a maintenance schedule."""
+    """Display the details of a maintenance schedule owned by the current user."""
 
     model = MaintenanceSchedule
     template_name = "maintenance/maintenance_schedule_detail.html"
@@ -146,29 +156,34 @@ class MaintenanceScheduleDetailView(
 
 class MaintenanceScheduleUpdateView(
     LoginRequiredMixin,
-    SubscriptionQuotaMixin,
+    MaintenanceScheduleQuotaMixin,
     UserFormKwargsMixin,
     RedirectToDetailMixin,
     OwnedVehicleRecordMixin,
     UpdateView,
 ):
-    """Update an existing maintenance schedule."""
+    """Update a maintenance schedule owned by the current user.
+
+    Enforce subscription limits when reopening a previously completed
+    maintenance schedule.
+    """
 
     model = MaintenanceSchedule
     form_class = MaintenanceScheduleForm
     template_name = "maintenance/maintenance_schedule_form.html"
     context_object_name = "maintenance_schedule"
     detail_url_name = "maintenance:maintenance-schedule-detail"
-    quota_resource = "maintenance_schedules"
 
-    def get_quota_queryset(self) -> QuerySet:
-        return MaintenanceSchedule.objects.filter(
-            vehicle__owner=self.request.user,
-            is_completed=False,
-        )
-
-    def should_check_quota(self, form):
+    def should_check_quota(self, form: ModelForm) -> bool:
         """Check the quota when reopening a completed maintenance schedule."""
+
+        was_completed = self._was_completed()
+        is_completed = form.cleaned_data["is_completed"]
+
+        return was_completed and not is_completed
+
+    def _was_completed(self) -> bool:
+        """Retrieve the schedule's completion status from the database."""
 
         was_completed = (
             MaintenanceSchedule.objects.filter(
@@ -180,9 +195,7 @@ class MaintenanceScheduleUpdateView(
             )
         )
 
-        is_completed = form.cleaned_data["is_completed"]
-
-        return was_completed and not is_completed
+        return was_completed
 
 
 class MaintenanceScheduleDeleteView(
@@ -191,7 +204,7 @@ class MaintenanceScheduleDeleteView(
     OwnedVehicleRecordMixin,
     DeleteView,
 ):
-    """Delete a maintenance schedule after confirmation."""
+    """Delete an owned maintenance schedule after user confirmation."""
 
     model = MaintenanceSchedule
     template_name = "maintenance/maintenance_schedule_delete.html"
@@ -207,7 +220,11 @@ class PartCreateView(
     SubscriptionQuotaMixin,
     CreateView,
 ):
-    """Create a new part in the authenticated user's personal catalog."""
+    """Handle part creation within the user's personal catalog.
+
+    Enforce subscription limits and assign ownership to the
+    authenticated user.
+    """
 
     model = Part
     form_class = PartForm
@@ -215,14 +232,14 @@ class PartCreateView(
     success_url = reverse_lazy("maintenance:part-list")
     quota_resource = "parts"
 
-    def get_quota_queryset(self) -> QuerySet:
+    def get_quota_queryset(self) -> QuerySet[Part]:
         """Return all catalog parts owned by the current user."""
 
         return Part.objects.filter(
             owner=self.request.user,
         )
 
-    def form_valid(self, form):
+    def form_valid(self, form: ModelForm) -> HttpResponse:
         """Assign the authenticated user as the part owner before saving."""
 
         form.instance.owner = self.request.user
@@ -238,7 +255,7 @@ class PartListView(LoginRequiredMixin, OwnedObjectMixin, ListView):
 
 
 class PartDetailView(LoginRequiredMixin, OwnedObjectMixin, DetailView):
-    """Display the details of an existing part."""
+    """Display the details of a part owned by the current user."""
 
     model = Part
     template_name = "maintenance/part_detail.html"
@@ -251,7 +268,7 @@ class PartUpdateView(
     OwnedObjectMixin,
     UpdateView,
 ):
-    """Update an existing part."""
+    """Update a part in the current user's personal catalog."""
 
     model = Part
     form_class = PartForm
@@ -261,7 +278,7 @@ class PartUpdateView(
 
 
 class PartDeleteView(LoginRequiredMixin, OwnedObjectMixin, DeleteView):
-    """Delete an existing part."""
+    """Remove a part from the user's personal catalog after confirmation."""
 
     model = Part
     template_name = "maintenance/part_confirm_delete.html"

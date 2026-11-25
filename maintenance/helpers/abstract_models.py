@@ -2,7 +2,11 @@ from django.db import models
 
 
 class ServiceDetailsModel(models.Model):
-    """Define common fields shared by service records and maintenance schedules."""
+    """Provide shared service information for maintenance-related models.
+
+    Centralize service type choices and descriptions to maintain
+    consistency between service records and maintenance schedules.
+    """
 
     class ServiceType(models.TextChoices):
         """Define the available vehicle maintenance service types."""
