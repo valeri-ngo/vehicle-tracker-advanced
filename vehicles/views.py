@@ -1,6 +1,10 @@
+from typing import Any
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import QuerySet
+from django.forms.models import ModelForm
+from django.http import HttpResponse
 from django.http.response import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
@@ -21,6 +25,12 @@ class VehicleListView(
     OwnedObjectMixin,
     ListView,
 ):
+    """Display the vehicles registered to the current user.
+
+    Restrict the queryset to owned vehicles to prevent access
+    to records belonging to other accounts.
+    """
+
     model = Vehicle
     template_name = "vehicles/vehicle_list.html"
     context_object_name = "vehicles"
@@ -31,12 +41,26 @@ class VehicleCreateView(
     SubscriptionQuotaMixin,
     CreateView,
 ):
-    """Handle vehicle creation within subscription quotas."""
+    """Handle vehicle registration within the user's subscription limits.
+
+    Create the vehicle and its initial odometer reading within a single
+    transaction to keep the mileage history consistent.
+    """
 
     form_class = VehicleCreateForm
     template_name = "vehicles/vehicle_form.html"
     success_url = reverse_lazy("vehicles:vehicle-list")
     quota_resource = "vehicles"
+
+    @staticmethod
+    def _create_initial_odometer_entry(vehicle: Vehicle) -> None:
+        """Initialize the vehicle's odometer history using its starting mileage."""
+
+        OdometerEntry.objects.create(
+            vehicle=vehicle,
+            mileage=vehicle.current_mileage,
+            recorded_at=vehicle.created_at,
+        )
 
     def get_quota_queryset(self) -> QuerySet:
         """Return all vehicles owned by the current user."""
@@ -70,7 +94,7 @@ class VehicleCreateView(
 
         return None
 
-    def form_valid(self, form):
+    def form_valid(self, form: ModelForm) -> HttpResponse:
         """Create a vehicle and initial odometer entry within the subscription quota."""
 
         form.instance.owner = self.request.user
@@ -84,11 +108,7 @@ class VehicleCreateView(
             vehicle = self.object
             assert isinstance(vehicle, Vehicle)
 
-            OdometerEntry.objects.create(
-                vehicle=vehicle,
-                mileage=vehicle.current_mileage,
-                recorded_at=vehicle.created_at,
-            )
+            self._create_initial_odometer_entry(vehicle)
 
         return response
 
@@ -98,6 +118,12 @@ class VehicleDetailView(
     OwnedObjectMixin,
     DetailView,
 ):
+    """Display the details of a vehicle owned by the current user.
+
+    Use the ownership-filtered queryset to prevent unauthorized access
+    to vehicles registered by other accounts.
+    """
+
     model = Vehicle
     template_name = "vehicles/vehicle_detail.html"
     context_object_name = "vehicle"
@@ -115,8 +141,12 @@ class VehicleUpdateView(
     template_name = "vehicles/vehicle_form.html"
     success_url = reverse_lazy("vehicles:vehicle-list")
 
-    def form_valid(self, form):
-        """Update vehicle details without overwriting the current mileage."""
+    def form_valid(self, form: ModelForm) -> HttpResponseRedirect:
+        """Persist only modified vehicle fields.
+
+        Avoid overwriting mileage changes made by concurrent odometer
+        entry operations.
+        """
 
         self.object = form.save(commit=False)
 
@@ -130,6 +160,12 @@ class VehicleDeleteView(
     OwnedObjectMixin,
     DeleteView,
 ):
+    """Allow users to delete vehicles registered to their account.
+
+    Related records are removed through the model's cascading
+    foreign key relationships.
+    """
+
     model = Vehicle
     template_name = "vehicles/vehicle_confirm_delete.html"
     context_object_name = "vehicle"
@@ -158,14 +194,14 @@ class OdometerEntryCreateView(
             vehicle__owner=self.request.user,
         )
 
-    def get_form_kwargs(self):
+    def get_form_kwargs(self) -> dict[str, Any]:
         """Pass the selected vehicle to the odometer entry form."""
 
         kwargs = super().get_form_kwargs()
         kwargs["vehicle"] = self.vehicle
         return kwargs
 
-    def validate_locked_form(self, form) -> bool:
+    def validate_locked_form(self, form: ModelForm) -> bool:
         """Revalidate odometer entry consistency while holding the account lock."""
 
         self.vehicle.refresh_from_db(fields=["current_mileage"])
@@ -192,10 +228,19 @@ class OdometerEntryCreateView(
             entry = self.object
             assert isinstance(entry, OdometerEntry)
 
-            self.vehicle.refresh_from_db(fields=["current_mileage"])
-
-            if entry.mileage > self.vehicle.current_mileage:
-                self.vehicle.current_mileage = entry.mileage
-                self.vehicle.save(update_fields=["current_mileage"])
+            self._update_vehicle_mileage(entry)
 
         return response
+
+    def _update_vehicle_mileage(self, entry: OdometerEntry) -> None:
+        """Update the vehicle's current mileage when a higher reading is recorded.
+
+        Refresh the stored mileage before comparing values to ensure that
+        historical readings do not reduce the vehicle's current mileage.
+        """
+
+        self.vehicle.refresh_from_db(fields=["current_mileage"])
+
+        if entry.mileage > self.vehicle.current_mileage:
+            self.vehicle.current_mileage = entry.mileage
+            self.vehicle.save(update_fields=["current_mileage"])

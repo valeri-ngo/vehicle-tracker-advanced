@@ -6,6 +6,12 @@ from common.basic_models import CreatedAtModel
 
 
 class Vehicle(CreatedAtModel):
+    """Represent a vehicle registered by an account.
+
+    Store the vehicle's identification details and current mileage,
+    which is maintained through its odometer history.
+    """
+
     owner = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -26,11 +32,17 @@ class Vehicle(CreatedAtModel):
         default=0,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.brand} {self.model} ({self.year})"
 
 
 class OdometerEntry(CreatedAtModel):
+    """Represent a mileage reading recorded for a specific vehicle.
+
+    Maintain a chronological mileage history and prevent multiple
+    readings for the same vehicle at an identical timestamp.
+    """
+
     vehicle = models.ForeignKey(
         to="Vehicle",
         on_delete=models.CASCADE,
@@ -52,5 +64,5 @@ class OdometerEntry(CreatedAtModel):
             ),
         )
 
-    def __str__(self):
-        return f"{self.vehicle.brand} {self.vehicle.model} ({self.vehicle.year}) - {self.mileage} km"
+    def __str__(self) -> str:
+        return f"{self.vehicle} - {self.mileage} km"
