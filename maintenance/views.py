@@ -10,6 +10,7 @@ from django.views.generic import (
 )
 
 from common.mixins import (
+    OwnedObjectMixin,
     OwnedVehicleRecordMixin,
     RedirectToDetailMixin,
     RedirectToVehicleListMixin,
@@ -17,7 +18,6 @@ from common.mixins import (
     UserFormKwargsMixin,
     VehicleCreateMixin,
     VehicleListMixin,
-    VehicleOwnerMixin,
 )
 from maintenance.forms import MaintenanceScheduleForm, PartForm, ServiceRecordForm
 from maintenance.models import MaintenanceSchedule, Part, ServiceRecord
@@ -229,7 +229,7 @@ class PartCreateView(
         return super().form_valid(form)
 
 
-class PartListView(LoginRequiredMixin, VehicleOwnerMixin, ListView):
+class PartListView(LoginRequiredMixin, OwnedObjectMixin, ListView):
     """List parts belonging to the authenticated user."""
 
     model = Part
@@ -237,7 +237,7 @@ class PartListView(LoginRequiredMixin, VehicleOwnerMixin, ListView):
     context_object_name = "parts"
 
 
-class PartDetailView(LoginRequiredMixin, VehicleOwnerMixin, DetailView):
+class PartDetailView(LoginRequiredMixin, OwnedObjectMixin, DetailView):
     """Display the details of an existing part."""
 
     model = Part
@@ -248,7 +248,7 @@ class PartDetailView(LoginRequiredMixin, VehicleOwnerMixin, DetailView):
 class PartUpdateView(
     LoginRequiredMixin,
     RedirectToDetailMixin,
-    VehicleOwnerMixin,
+    OwnedObjectMixin,
     UpdateView,
 ):
     """Update an existing part."""
@@ -260,7 +260,7 @@ class PartUpdateView(
     detail_url_name = "maintenance:part-detail"
 
 
-class PartDeleteView(LoginRequiredMixin, VehicleOwnerMixin, DeleteView):
+class PartDeleteView(LoginRequiredMixin, OwnedObjectMixin, DeleteView):
     """Delete an existing part."""
 
     model = Part

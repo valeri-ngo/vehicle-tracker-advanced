@@ -10,7 +10,7 @@ class NotificationListView(LoginRequiredMixin, ListView):
     """Display notifications belonging to the authenticated user."""
 
     model = Notification
-    template_engine = "notification/notification_list.html"
+    template_engine = "notifications/notification_list.html"
     context_object_name = "notifications"
 
     def get_queryset(self):

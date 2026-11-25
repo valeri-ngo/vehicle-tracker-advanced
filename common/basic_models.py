@@ -2,7 +2,10 @@ from django.db import models
 
 
 class CreatedAtModel(models.Model):
-    """Provide a creation timestamp for inheriting Django models."""
+    """Base model for entities that require a creation timestamp.
+
+    Order records by creation date in descending order by default.
+    """
 
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -14,7 +17,11 @@ class CreatedAtModel(models.Model):
 
 
 class DateTimeModel(CreatedAtModel):
-    """Provide creation and last-update timestamps for inheriting models."""
+    """Extend CreatedAtModel with a timestamp for the last modification.
+
+    Use this base model for entities that need to track both creation
+    and subsequent updates.
+    """
 
     updated_at = models.DateTimeField(
         auto_now=True,

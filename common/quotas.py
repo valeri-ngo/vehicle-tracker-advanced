@@ -1,10 +1,8 @@
-def get_vehicle_limit(user):
-    """Return the vehicle quota for the user's subscription."""
+from collections.abc import Mapping
 
-    return get_subscription_limit(user, "vehicles")
+from accounts.models import Account
 
-
-SUBSCRIPTION_LIMITS = {
+SUBSCRIPTION_LIMITS: Mapping[str, Mapping[str, int | None]] = {
     "Free": {
         "vehicles": 1,
         "service_records": 15,
@@ -24,8 +22,12 @@ SUBSCRIPTION_LIMITS = {
 }
 
 
-def get_subscription_plan(user):
-    """Return the subscription plan of the given user."""
+def get_subscription_plan(user: Account) -> str:
+    """Determine the user's subscription plan based on group membership.
+
+    Superusers are exempt from subscription restrictions. Users without
+    VIP membership are treated as Free subscribers.
+    """
 
     if user.is_superuser:
         return "Superuser"
@@ -36,8 +38,12 @@ def get_subscription_plan(user):
     return "Free"
 
 
-def get_subscription_limit(user, resource):
-    """Return the subscription limit for the specified resource."""
+def get_subscription_limit(user: Account, resource: str) -> int | None:
+    """Return the configured resource limit for the user's subscription plan.
+
+    Return None when the resource is unlimited or the user is a superuser.
+    Raise KeyError for an unknown resource on a restricted plan.
+    """
 
     plan = get_subscription_plan(user)
 

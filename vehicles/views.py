@@ -6,7 +6,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
 from django.views.generic.list import ListView
 
-from common.mixins import SubscriptionQuotaMixin, VehicleCreateMixin, VehicleOwnerMixin
+from common.mixins import OwnedObjectMixin, SubscriptionQuotaMixin, VehicleCreateMixin
 from common.quotas import get_subscription_limit
 
 from .forms import OdometerEntryForm, VehicleCreateForm, VehicleUpdateForm
@@ -18,7 +18,7 @@ from .validators import validate_odometer_entry
 
 class VehicleListView(
     LoginRequiredMixin,
-    VehicleOwnerMixin,
+    OwnedObjectMixin,
     ListView,
 ):
     model = Vehicle
@@ -68,6 +68,8 @@ class VehicleCreateView(
         if count >= limit:
             return "Your plan does not allow additional odometer entries."
 
+        return None
+
     def form_valid(self, form):
         """Create a vehicle and initial odometer entry within the subscription quota."""
 
@@ -93,7 +95,7 @@ class VehicleCreateView(
 
 class VehicleDetailView(
     LoginRequiredMixin,
-    VehicleOwnerMixin,
+    OwnedObjectMixin,
     DetailView,
 ):
     model = Vehicle
@@ -103,7 +105,7 @@ class VehicleDetailView(
 
 class VehicleUpdateView(
     LoginRequiredMixin,
-    VehicleOwnerMixin,
+    OwnedObjectMixin,
     UpdateView,
 ):
     """Update the details of a vehicle owned by the current user."""
@@ -125,7 +127,7 @@ class VehicleUpdateView(
 
 class VehicleDeleteView(
     LoginRequiredMixin,
-    VehicleOwnerMixin,
+    OwnedObjectMixin,
     DeleteView,
 ):
     model = Vehicle
