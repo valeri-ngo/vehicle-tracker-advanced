@@ -1,25 +1,18 @@
-from django.core.management.base import BaseCommand
-from django.utils import timezone
+from typing import Any
 
-from documents.models import VehicleDocument
-from notifications.services import create_document_reminder
+from django.core.management.base import BaseCommand
+
+from notifications.services import generate_document_reminders
 
 
 class Command(BaseCommand):
+    """Provide a management command for manual document reminder generation."""
+
     help = "Generate expiration reminders for vehicle documents."
 
-    def handle(self, *args, **options):
-        documents = VehicleDocument.objects.filter(
-            notifications_enabled=True,
-            expires_on__gte=timezone.localdate(),
-        ).select_related("vehicle__owner")
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Generate document reminders and report the number created."""
 
-        create_count = 0
-
-        for document in documents.iterator():
-            _, created = create_document_reminder(document)
-
-            if created:
-                create_count += 1
+        create_count = generate_document_reminders()
 
         self.stdout.write(self.style.SUCCESS(f"Generated {create_count} reminder(s)."))

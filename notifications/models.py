@@ -6,7 +6,16 @@ from common.basic_models import DateTimeModel
 
 
 class Notification(DateTimeModel):
+    """Represent a notification delivered to a vehicle owner.
+
+    Support document and maintenance reminders, prevent duplicate
+    notifications through deduplication keys, and preserve notification
+    history when related records are deleted.
+    """
+
     class NotificationTypes(models.TextChoices):
+        """Define the supported notification categories."""
+
         DOCUMENT = "document", "Document"
         MAINTENANCE = "maintenance", "Maintenance"
 
@@ -54,13 +63,23 @@ class Notification(DateTimeModel):
         default=False,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Return the notification title as a readable string."""
+
         return self.title
 
-    def clean(self):
+    def clean(self) -> None:
         """Validate notification type, related objects, and recipient ownership."""
 
         super().clean()
+
+        self._validate_notification_type()
+        self._validate_recipient_ownership()
+        self._validate_required_relation()
+
+    def _validate_notification_type(self) -> None:
+        """Ensure related objects match the notification type."""
+
         if (
             self.notification_type == self.NotificationTypes.DOCUMENT
             and self.maintenance_schedule_id is not None
@@ -74,6 +93,9 @@ class Notification(DateTimeModel):
             and self.document_id is not None
         ):
             raise ValidationError("Maintenance notifications cannot have a document.")
+
+    def _validate_recipient_ownership(self) -> None:
+        """Ensure the recipient owns the related document or maintenance schedule."""
 
         if (
             self.document_id is not None
@@ -89,16 +111,24 @@ class Notification(DateTimeModel):
                 "The recipient is not the owner of the maintenance schedule."
             )
 
+    def _validate_required_relation(self) -> None:
+        """Require a matching related object when creating a notification.
+
+        Allow existing notifications to remain valid after their
+        related records have been deleted.
+        """
+
+        if not self._state.adding:
+            return
+
         if (
-            self._state.adding
-            and self.notification_type == self.NotificationTypes.DOCUMENT
+            self.notification_type == self.NotificationTypes.DOCUMENT
             and self.document_id is None
         ):
             raise ValidationError("Document notifications must have a document.")
 
         if (
-            self._state.adding
-            and self.notification_type == self.NotificationTypes.MAINTENANCE
+            self.notification_type == self.NotificationTypes.MAINTENANCE
             and self.maintenance_schedule_id is None
         ):
             raise ValidationError(

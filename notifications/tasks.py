@@ -1,22 +1,10 @@
 from celery import shared_task
 
-from documents.models import VehicleDocument
-from notifications.services import create_document_reminder
+from .services import generate_document_reminders
 
 
 @shared_task
-def check_document_reminders():
-    """Check vehicle documents and create reminders when they are due."""
-    documents = VehicleDocument.objects.filter(
-        notifications_enabled=True,
-    ).select_related("vehicle__owner")
+def check_document_reminders() -> int:
+    """Execute the scheduled document reminder generation."""
 
-    create_count = 0
-
-    for document in documents:
-        _, created = create_document_reminder(document)
-
-        if created:
-            create_count += 1
-
-    return create_count
+    return generate_document_reminders()

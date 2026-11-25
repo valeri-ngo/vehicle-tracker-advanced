@@ -1,4 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import QuerySet
+from django.http import HttpRequest, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.views.generic import ListView
@@ -10,10 +12,12 @@ class NotificationListView(LoginRequiredMixin, ListView):
     """Display notifications belonging to the authenticated user."""
 
     model = Notification
-    template_engine = "notifications/notification_list.html"
+    template_name = "notifications/notification_list.html"
     context_object_name = "notifications"
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Notification]:
+        """Return the current user's notifications in reverse chronological order."""
+
         return (
             super()
             .get_queryset()
@@ -25,9 +29,15 @@ class NotificationListView(LoginRequiredMixin, ListView):
 
 
 class NotificationMarkAsReadView(LoginRequiredMixin, View):
-    """Mark an owned notification as read."""
+    """Mark notifications belonging to the current user as read.
 
-    def post(self, request, pk):
+    Restrict state changes to POST requests and avoid unnecessary
+    database updates for notifications that have already been read.
+    """
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponseRedirect:
+        """Mark the selected notification as read and redirect to the list."""
+
         notification = get_object_or_404(
             Notification,
             pk=pk,
