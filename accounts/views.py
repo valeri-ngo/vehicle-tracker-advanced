@@ -1,12 +1,23 @@
+from datetime import timedelta
+from typing import Any
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
 from django.contrib.auth.views import LoginView, LogoutView
 from django.db import IntegrityError, transaction
+from django.db.models import QuerySet, F, Q
 from django.http import HttpResponse
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.generic import CreateView, TemplateView
 
+from common.quotas import get_subscription_plan, SUBSCRIPTION_LIMITS
+from documents.models import VehicleDocument
+from maintenance.models import Part, ServiceRecord, MaintenanceSchedule
+from notifications.models import Notification
+from vehicles.models import OdometerEntry
 from .forms import AccountRegistrationForm
+from .models import Account
 
 
 class AccountRegisterView(CreateView):
@@ -81,6 +92,166 @@ class AccountDashboardView(LoginRequiredMixin, TemplateView):
     """
 
     template_name = "accounts/dashboard.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Provide dashboard data for the authenticated user."""
+        context = super().get_context_data(**kwargs)
+
+        user = self.request.user
+
+        statistics = self._get_statistics(user)
+        upcoming_maintenance = self._get_upcoming_maintenance(user)
+        expiring_documents = self._get_expiring_documents(user)
+        recent_service_records = self._get_recent_service_records(user)
+        recent_notifications = self._get_recent_notifications(user)
+        subscription_context = self._get_subscription_context(user, statistics)
+
+        context["upcoming_maintenance"] = upcoming_maintenance
+        context["expiring_documents"] = expiring_documents
+        context["recent_service_records"] = recent_service_records
+        context["recent_notifications"] = recent_notifications
+
+        context.update(statistics)
+        context.update(subscription_context)
+
+        return context
+
+    @staticmethod
+    def _get_statistics(user: Account) -> dict[str, int]:
+        """Retrieve the statistics for a particular user."""
+
+        vehicle_count = user.vehicles.count()
+
+        service_record_count = ServiceRecord.objects.filter(vehicle__owner=user).count()
+
+        active_schedule_count = (MaintenanceSchedule.objects
+                                 .filter(vehicle__owner=user,
+                                         is_completed=False, )
+                                 .count())
+
+        document_count = VehicleDocument.objects.filter(vehicle__owner=user).count()
+
+        part_count = Part.objects.filter(owner=user).count()
+
+        unread_notification_count = (Notification.objects
+                                     .filter(recipient=user,
+                                             is_read=False, )
+                                     .count())
+
+        odometer_entry_count = OdometerEntry.objects.filter(vehicle__owner=user).count()
+
+        return {
+            "vehicle_count": vehicle_count,
+            "service_record_count": service_record_count,
+            "active_schedule_count": active_schedule_count,
+            "document_count": document_count,
+            "part_count": part_count,
+            "unread_notification_count": unread_notification_count,
+            "odometer_entry_count": odometer_entry_count,
+        }
+
+    @staticmethod
+    def _get_upcoming_maintenance(user: Account) -> QuerySet[MaintenanceSchedule]:
+        """Return upcoming and overdue maintenance schedules for a user."""
+
+        upcoming_maintenance = MaintenanceSchedule.objects.filter(
+            vehicle__owner=user,
+            is_completed=False,
+        )
+
+        today = timezone.localdate()
+        date_threshold = today + timedelta(days=30)
+
+        mileage_threshold = (F("vehicle__current_mileage") + 3000)
+
+        upcoming_maintenance = (upcoming_maintenance.filter(
+            Q(due_date__lte=date_threshold)
+            | Q(due_mileage__lte=mileage_threshold)
+        ).order_by(
+            F("due_date").asc(nulls_last=True),
+            F("due_mileage").asc(nulls_last=True),
+        ).select_related("vehicle"))[:5]
+
+        return upcoming_maintenance
+
+    @staticmethod
+    def _get_expiring_documents(user: Account) -> QuerySet[VehicleDocument]:
+        """Return up to five expired or soon-to-expire documents for a user."""
+
+        today = timezone.localdate()
+        date_threshold = today + timedelta(days=30)
+
+        return VehicleDocument.objects.filter(
+            vehicle__owner=user,
+            expires_on__lte=date_threshold,
+        ).order_by("expires_on").select_related("vehicle")[:5]
+
+    @staticmethod
+    def _get_recent_service_records(user: Account) -> QuerySet[ServiceRecord]:
+        """Return the five most recent service records for a user."""
+
+        return ServiceRecord.objects.filter(
+            vehicle__owner=user,
+        ).order_by(
+            "-service_date",
+            "-pk"
+        ).select_related("vehicle")[:5]
+
+    @staticmethod
+    def _get_recent_notifications(user: Account) -> QuerySet[Notification]:
+        """Return the five most recent notifications for a user."""
+
+        return Notification.objects.filter(
+            recipient=user,
+        ).order_by(
+            "-created_at",
+            "-pk",
+        )[:5]
+
+    @staticmethod
+    def _get_subscription_context(user: Account, statistics: dict[str, int]) -> dict[str, Any]:
+        """Provide subscription details and resource usage for a user."""
+
+        plan = get_subscription_plan(user)
+
+        if plan == "Superuser":
+            limits = dict.fromkeys(SUBSCRIPTION_LIMITS["Free"].keys(), None)
+
+        else:
+            limits = SUBSCRIPTION_LIMITS[plan]
+
+        resource_usage = {
+            "vehicles": statistics["vehicle_count"],
+            "service_records": statistics["service_record_count"],
+            "odometer_entries": statistics["odometer_entry_count"],
+            "maintenance_schedules": statistics["active_schedule_count"],
+            "parts": statistics["part_count"],
+            "documents": statistics["document_count"],
+        }
+
+        usage = {}
+
+        for resource, used in resource_usage.items():
+            limit = limits[resource]
+            is_unlimited = limit is None
+
+            if limit is None:
+                remaining = None
+                percentage = None
+
+            else:
+                remaining = max(0, limit - used)
+                percentage = round((used / limit) * 100, 2)
+
+            usage[resource] = {
+                "used": used,
+                "limit": limit,
+                "remaining": remaining,
+                "percentage": percentage,
+                "is_unlimited": is_unlimited,
+            }
+
+        return {"subscription_plan": plan, "subscription_usage": usage}
 
 
 class HomeView(TemplateView):
