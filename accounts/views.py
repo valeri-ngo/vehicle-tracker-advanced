@@ -5,17 +5,18 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
 from django.contrib.auth.views import LoginView, LogoutView
 from django.db import IntegrityError, transaction
-from django.db.models import QuerySet, F, Q
+from django.db.models import F, Q, QuerySet
 from django.http import HttpResponse
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, TemplateView
 
-from common.quotas import get_subscription_plan, SUBSCRIPTION_LIMITS
+from common.quotas import SUBSCRIPTION_LIMITS, get_subscription_plan
 from documents.models import VehicleDocument
-from maintenance.models import Part, ServiceRecord, MaintenanceSchedule
+from maintenance.models import MaintenanceItem, MaintenanceSchedule, ServiceRecord
 from notifications.models import Notification
 from vehicles.models import OdometerEntry
+
 from .forms import AccountRegistrationForm
 from .models import Account
 
@@ -124,19 +125,19 @@ class AccountDashboardView(LoginRequiredMixin, TemplateView):
 
         service_record_count = ServiceRecord.objects.filter(vehicle__owner=user).count()
 
-        active_schedule_count = (MaintenanceSchedule.objects
-                                 .filter(vehicle__owner=user,
-                                         is_completed=False, )
-                                 .count())
+        active_schedule_count = MaintenanceSchedule.objects.filter(
+            vehicle__owner=user,
+            is_completed=False,
+        ).count()
 
         document_count = VehicleDocument.objects.filter(vehicle__owner=user).count()
 
-        part_count = Part.objects.filter(owner=user).count()
+        maintenance_item_count = MaintenanceItem.objects.filter(owner=user).count()
 
-        unread_notification_count = (Notification.objects
-                                     .filter(recipient=user,
-                                             is_read=False, )
-                                     .count())
+        unread_notification_count = Notification.objects.filter(
+            recipient=user,
+            is_read=False,
+        ).count()
 
         odometer_entry_count = OdometerEntry.objects.filter(vehicle__owner=user).count()
 
@@ -145,7 +146,7 @@ class AccountDashboardView(LoginRequiredMixin, TemplateView):
             "service_record_count": service_record_count,
             "active_schedule_count": active_schedule_count,
             "document_count": document_count,
-            "part_count": part_count,
+            "maintenance_item_count": maintenance_item_count,
             "unread_notification_count": unread_notification_count,
             "odometer_entry_count": odometer_entry_count,
         }
@@ -162,15 +163,18 @@ class AccountDashboardView(LoginRequiredMixin, TemplateView):
         today = timezone.localdate()
         date_threshold = today + timedelta(days=30)
 
-        mileage_threshold = (F("vehicle__current_mileage") + 3000)
+        mileage_threshold = F("vehicle__current_mileage") + 3000
 
-        upcoming_maintenance = (upcoming_maintenance.filter(
-            Q(due_date__lte=date_threshold)
-            | Q(due_mileage__lte=mileage_threshold)
-        ).order_by(
-            F("due_date").asc(nulls_last=True),
-            F("due_mileage").asc(nulls_last=True),
-        ).select_related("vehicle"))[:5]
+        upcoming_maintenance = (
+            upcoming_maintenance.filter(
+                Q(due_date__lte=date_threshold) | Q(due_mileage__lte=mileage_threshold)
+            )
+            .order_by(
+                F("due_date").asc(nulls_last=True),
+                F("due_mileage").asc(nulls_last=True),
+            )
+            .select_related("vehicle")
+        )[:5]
 
         return upcoming_maintenance
 
@@ -181,21 +185,26 @@ class AccountDashboardView(LoginRequiredMixin, TemplateView):
         today = timezone.localdate()
         date_threshold = today + timedelta(days=30)
 
-        return VehicleDocument.objects.filter(
-            vehicle__owner=user,
-            expires_on__lte=date_threshold,
-        ).order_by("expires_on").select_related("vehicle")[:5]
+        return (
+            VehicleDocument.objects.filter(
+                vehicle__owner=user,
+                expires_on__lte=date_threshold,
+            )
+            .order_by("expires_on")
+            .select_related("vehicle")[:5]
+        )
 
     @staticmethod
     def _get_recent_service_records(user: Account) -> QuerySet[ServiceRecord]:
         """Return the five most recent service records for a user."""
 
-        return ServiceRecord.objects.filter(
-            vehicle__owner=user,
-        ).order_by(
-            "-service_date",
-            "-pk"
-        ).select_related("vehicle")[:5]
+        return (
+            ServiceRecord.objects.filter(
+                vehicle__owner=user,
+            )
+            .order_by("-service_date", "-pk")
+            .select_related("vehicle")[:5]
+        )
 
     @staticmethod
     def _get_recent_notifications(user: Account) -> QuerySet[Notification]:
@@ -209,7 +218,9 @@ class AccountDashboardView(LoginRequiredMixin, TemplateView):
         )[:5]
 
     @staticmethod
-    def _get_subscription_context(user: Account, statistics: dict[str, int]) -> dict[str, Any]:
+    def _get_subscription_context(
+        user: Account, statistics: dict[str, int]
+    ) -> dict[str, Any]:
         """Provide subscription details and resource usage for a user."""
 
         plan = get_subscription_plan(user)
@@ -225,7 +236,7 @@ class AccountDashboardView(LoginRequiredMixin, TemplateView):
             "service_records": statistics["service_record_count"],
             "odometer_entries": statistics["odometer_entry_count"],
             "maintenance_schedules": statistics["active_schedule_count"],
-            "parts": statistics["part_count"],
+            "maintenance_items": statistics["maintenance_item_count"],
             "documents": statistics["document_count"],
         }
 

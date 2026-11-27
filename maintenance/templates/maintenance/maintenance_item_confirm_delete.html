@@ -2,26 +2,24 @@
 
 {% block content %}
     <section>
-        <h1>Delete Part</h1>
+        <h1>Delete Maintenance Item</h1>
 
         <p>
             Are you sure you want to delete
-            <strong>{{ part.name }}</strong>?
+            <strong>{{ maintenance_item.name }}</strong>?
         </p>
 
-        <p>
-            This action cannot be undone.
-        </p>
+        <p>This action cannot be undone.</p>
 
         <form method="post">
             {% csrf_token %}
 
             <button type="submit">
-                Yes, Delete Part
+                Yes, Delete Maintenance Item
             </button>
         </form>
 
-        <a href="{% url 'maintenance:part-detail' part.pk %}">
+        <a href="{% url 'maintenance:maintenance-item-detail' maintenance_item.pk %}">
             Cancel
         </a>
     </section>

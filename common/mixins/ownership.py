@@ -111,7 +111,7 @@ class OwnedObjectMixin:
     """Restrict access to objects directly owned by the current user.
 
     Applicable to any model with an owner relationship, including
-    vehicles and catalog parts.
+    vehicles and custom maintenance items.
     """
 
     request: HttpRequest

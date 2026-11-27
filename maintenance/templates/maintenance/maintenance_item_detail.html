@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <section>
+        <header>
+            <h1>{{ maintenance_item.name }}</h1>
+            <p>Maintenance Item Details</p>
+        </header>
+
+        <div>
+            <h2>Maintenance Information</h2>
+
+            <p>
+                <strong>Name:</strong>
+                {{ maintenance_item.name }}
+            </p>
+
+            <p>
+                <strong>Category:</strong>
+                {{ maintenance_item.get_category_display }}
+            </p>
+
+            <p>
+                <strong>Type:</strong>
+                {% if maintenance_item.owner %}
+                    Custom
+                {% else %}
+                    Predefined
+                {% endif %}
+            </p>
+
+            <p>
+                <strong>Added on:</strong>
+                {{ maintenance_item.created_at|date:"d M Y" }}
+            </p>
+        </div>
+
+        {% if maintenance_item.owner_id == request.user.pk %}
+            {% if maintenance_item.is_in_use %}
+                <p>
+                    This item is currently in use and cannot
+                    be modified or deleted.
+                </p>
+            {% else %}
+                <a href="{% url 'maintenance:maintenance-item-update' maintenance_item.pk %}">
+                    Edit Maintenance Item
+                </a>
+
+                <a href="{% url 'maintenance:maintenance-item-delete' maintenance_item.pk %}">
+                    Delete Maintenance Item
+                </a>
+            {% endif %}
+        {% endif %}
+
+        <nav>
+            <a href="{% url 'maintenance:maintenance-item-list' %}">
+                Back to Maintenance Checklist
+            </a>
+        </nav>
+    </section>
+{% endblock %}

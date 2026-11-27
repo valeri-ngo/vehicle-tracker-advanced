@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <section>
+        <header>
+            <h1>Maintenance Checklist</h1>
+            <p>
+                Browse predefined maintenance operations and
+                manage your custom maintenance items.
+            </p>
+
+            <a href="{% url 'maintenance:maintenance-item-create' %}">
+                Add Custom Maintenance Item
+            </a>
+        </header>
+
+        {% regroup maintenance_items by get_category_display as category_list %}
+
+        {% for category in category_list %}
+            <section>
+                <h2>{{ category.grouper }}</h2>
+
+                <ul>
+                    {% for maintenance_item in category.list %}
+                        <li>
+                            <a href="{% url 'maintenance:maintenance-item-detail' maintenance_item.pk %}">
+                                {{ maintenance_item.name }}
+                            </a>
+
+                            {% if maintenance_item.owner_id %}
+                                <span>Custom</span>
+                            {% else %}
+                                <span>Predefined</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% empty %}
+            <p>No maintenance items are available.</p>
+
+            <a href="{% url 'maintenance:maintenance-item-create' %}">
+                Add Your First Maintenance Item
+            </a>
+        {% endfor %}
+    </section>
+{% endblock %}

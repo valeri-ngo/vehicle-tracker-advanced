@@ -20,10 +20,10 @@
             {% if field.is_hidden %}
                 {{ field }}
 
-            {% elif field.name == "parts" %}
+            {% elif field.name == "maintenance_items" %}
                 <details {% if field.errors %}open{% endif %}>
                     <summary>
-                        Select Parts (Optional)
+                        Select Maintenance Items (Optional)
                     </summary>
 
                     <div>

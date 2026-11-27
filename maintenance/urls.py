@@ -1,16 +1,16 @@
 from django.urls import include, path
 
 from maintenance.views import (
+    MaintenanceItemCreateView,
+    MaintenanceItemDeleteView,
+    MaintenanceItemDetailView,
+    MaintenanceItemListView,
+    MaintenanceItemUpdateView,
     MaintenanceScheduleCreateView,
     MaintenanceScheduleDeleteView,
     MaintenanceScheduleDetailView,
     MaintenanceScheduleListView,
     MaintenanceScheduleUpdateView,
-    PartCreateView,
-    PartDeleteView,
-    PartDetailView,
-    PartListView,
-    PartUpdateView,
     ServiceRecordCreateView,
     ServiceRecordDeleteView,
     ServiceRecordDetailView,
@@ -56,38 +56,38 @@ maintenance_schedule_detail_patterns = [
     ),
 ]
 
-part_detail_patterns = [
+maintenance_item_detail_patterns = [
     path(
         "",
-        PartDetailView.as_view(),
-        name="part-detail",
+        MaintenanceItemDetailView.as_view(),
+        name="maintenance-item-detail",
     ),
     path(
         "edit/",
-        PartUpdateView.as_view(),
-        name="part-update",
+        MaintenanceItemUpdateView.as_view(),
+        name="maintenance-item-update",
     ),
     path(
         "delete/",
-        PartDeleteView.as_view(),
-        name="part-delete",
+        MaintenanceItemDeleteView.as_view(),
+        name="maintenance-item-delete",
     ),
 ]
 
-part_patterns = [
+maintenance_item_patterns = [
     path(
         "",
-        PartListView.as_view(),
-        name="part-list",
+        MaintenanceItemListView.as_view(),
+        name="maintenance-item-list",
     ),
     path(
         "create/",
-        PartCreateView.as_view(),
-        name="part-create",
+        MaintenanceItemCreateView.as_view(),
+        name="maintenance-item-create",
     ),
     path(
         "<int:pk>/",
-        include(part_detail_patterns),
+        include(maintenance_item_detail_patterns),
     ),
 ]
 
@@ -121,7 +121,7 @@ urlpatterns = [
         include(maintenance_schedule_detail_patterns),
     ),
     path(
-        "parts/",
-        include(part_patterns),
+        "maintenance-items/",
+        include(maintenance_item_patterns),
     ),
 ]

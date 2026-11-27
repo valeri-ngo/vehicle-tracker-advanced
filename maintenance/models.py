@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models.functions import Lower
 
 from common.basic_models import CreatedAtModel
 from maintenance.helpers.abstract_models import ServiceDetailsModel
@@ -11,8 +12,8 @@ from maintenance.helpers.abstract_models import ServiceDetailsModel
 class ServiceRecord(ServiceDetailsModel, CreatedAtModel):
     """Represent a completed maintenance operation for a vehicle.
 
-    Store the service date, recorded mileage, cost and associated parts
-    as part of the vehicle's service history.
+    Store the service date, recorded mileage, cost and selected maintenance
+    items as part of the vehicle's service history.
     """
 
     vehicle = models.ForeignKey(
@@ -25,8 +26,8 @@ class ServiceRecord(ServiceDetailsModel, CreatedAtModel):
 
     service_date = models.DateField()
 
-    parts = models.ManyToManyField(
-        "Part",
+    maintenance_items = models.ManyToManyField(
+        "MaintenanceItem",
         blank=True,
         related_name="service_records",
     )
@@ -77,8 +78,8 @@ class MaintenanceSchedule(ServiceDetailsModel, CreatedAtModel):
         blank=True,
     )
 
-    parts = models.ManyToManyField(
-        "Part",
+    maintenance_items = models.ManyToManyField(
+        "MaintenanceItem",
         blank=True,
         related_name="maintenance_schedules",
     )
@@ -105,34 +106,74 @@ class MaintenanceSchedule(ServiceDetailsModel, CreatedAtModel):
         )
 
 
-class Part(CreatedAtModel):
-    """Represent a reusable part in the user's personal parts catalog.
+class MaintenanceItem(CreatedAtModel):
+    """Represent a reusable vehicle maintenance checklist item.
 
-    Allow the same catalog entry to be associated with multiple service
-    records and maintenance schedules.
+    Provide predefined maintenance items available to all users and custom
+    items owned by individual users. Allow items to be associated with
+    completed service records and planned maintenance schedules.
     """
+
+    class CategoryType(models.TextChoices):
+        """Define categories for vehicle maintenance items."""
+
+        OIL_FILTERS = "oil_filters", "Oil & Filters"
+        BRAKES = "brakes", "Braking System"
+        ENGINE = "engine", "Engine"
+        COOLING = "cooling", "Cooling System"
+        TRANSMISSION = "transmission", "Transmission"
+        SUSPENSION = "suspension", "Suspension & Steering"
+        ELECTRICAL = "electrical", "Electrical System"
+        TIRES = "tires", "Wheels & Tires"
+        EXHAUST = "exhaust", "Exhaust System"
+        AIR_CONDITIONING = "air_conditioning", "Air Conditioning"
+        BODY = "body", "Body & Exterior"
+        OTHER = "other", "Other"
 
     owner = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="parts",
+        null=True,
+        blank=True,
+        related_name="maintenance_items",
     )
 
     name = models.CharField(
         max_length=100,
     )
 
-    manufacturer = models.CharField(
-        max_length=100,
-        blank=True,
+    category = models.CharField(
+        max_length=50,
+        choices=CategoryType,
     )
 
-    part_number = models.CharField(
-        max_length=100,
-        blank=True,
-    )
+    class Meta:
+        ordering = ("category", "name")
+
+        constraints = (
+            models.UniqueConstraint(
+                Lower("name"),
+                condition=models.Q(owner__isnull=True),
+                name="unique_standard_maintenance_item",
+            ),
+            models.UniqueConstraint(
+                Lower("name"),
+                models.F("owner"),
+                condition=models.Q(owner__isnull=False),
+                name="unique_custom_maintenance_item_per_owner",
+            ),
+        )
+
+    def is_in_use(self) -> bool:
+        """Determine whether the item is associated with any maintenance records."""
+
+        has_service_records: bool = self.service_records.exists()
+
+        has_maintenance_schedules: bool = self.maintenance_schedules.exists()
+
+        return has_service_records or has_maintenance_schedules
 
     def __str__(self) -> str:
-        """Return the part name as its string representation."""
+        """Return the maintenance item name as its string representation."""
 
         return self.name

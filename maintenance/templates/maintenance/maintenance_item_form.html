@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <section>
+        <h1>
+            {% if object %}
+                Edit Maintenance Item
+            {% else %}
+                Add Maintenance Item
+            {% endif %}
+        </h1>
+
+        <p>Customize your vehicle maintenance checklist.</p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {{ form.as_p }}
+
+            <button type="submit">
+                {% if object %}
+                    Save Changes
+                {% else %}
+                    Add Maintenance Item
+                {% endif %}
+            </button>
+        </form>
+
+        <a href="{% url 'maintenance:maintenance-item-list' %}">
+            Back to Maintenance Checklist
+        </a>
+    </section>
+{% endblock %}

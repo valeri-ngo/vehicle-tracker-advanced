@@ -21,9 +21,18 @@ from common.mixins import (
     VehicleCreateMixin,
     VehicleListMixin,
 )
-from maintenance.forms import MaintenanceScheduleForm, PartForm, ServiceRecordForm
-from maintenance.helpers.view_mixins import MaintenanceScheduleQuotaMixin
-from maintenance.models import MaintenanceSchedule, Part, ServiceRecord
+from maintenance.forms import (
+    MaintenanceItemForm,
+    MaintenanceScheduleForm,
+    ServiceRecordForm,
+)
+from maintenance.helpers.view_mixins import (
+    AvailableMaintenanceItemsMixin,
+    MaintenanceItemIntegrityMixin,
+    MaintenanceItemProtectionMixin,
+    MaintenanceScheduleQuotaMixin,
+)
+from maintenance.models import MaintenanceItem, MaintenanceSchedule, ServiceRecord
 
 # --------------------------- SERVICE RECORD ---------------------------
 
@@ -35,10 +44,10 @@ class ServiceRecordCreateView(
     VehicleCreateMixin,
     CreateView,
 ):
-    """Handle part creation within the user's personal catalog.
+    """Create a service record for a vehicle owned by the authenticated user.
 
-    Enforce subscription limits and assign ownership to the
-    authenticated user.
+    Enforce subscription limits and restrict maintenance item selection
+    to predefined and user-owned items.
     """
 
     form_class = ServiceRecordForm
@@ -82,7 +91,7 @@ class ServiceRecordUpdateView(
 ):
     """Update a service record owned by the current user.
 
-    Restrict part selection to the user's personal catalog.
+    Restrict maintenance item selection to predefined and user-owned items.
     """
 
     model = ServiceRecord
@@ -212,75 +221,92 @@ class MaintenanceScheduleDeleteView(
     vehicle_list_url_name = "maintenance:maintenance-schedule-list"
 
 
-# --------------------------- PARTS ---------------------------
+# --------------------------- MAINTENANCE ITEMS ---------------------------
 
 
-class PartCreateView(
+class MaintenanceItemCreateView(
     LoginRequiredMixin,
+    MaintenanceItemIntegrityMixin,
     SubscriptionQuotaMixin,
+    UserFormKwargsMixin,
     CreateView,
 ):
-    """Handle part creation within the user's personal catalog.
+    """Create a custom maintenance item for the authenticated user.
 
-    Enforce subscription limits and assign ownership to the
-    authenticated user.
+    Enforce subscription limits and assign ownership before saving.
     """
 
-    model = Part
-    form_class = PartForm
-    template_name = "maintenance/part_form.html"
-    success_url = reverse_lazy("maintenance:part-list")
-    quota_resource = "parts"
+    model = MaintenanceItem
+    form_class = MaintenanceItemForm
+    template_name = "maintenance/maintenance_item_form.html"
+    success_url = reverse_lazy("maintenance:maintenance-item-list")
+    quota_resource = "maintenance_items"
 
-    def get_quota_queryset(self) -> QuerySet[Part]:
-        """Return all catalog parts owned by the current user."""
+    def get_quota_queryset(self) -> QuerySet[MaintenanceItem]:
+        """Return custom maintenance items owned by the current user."""
 
-        return Part.objects.filter(
+        return MaintenanceItem.objects.filter(
             owner=self.request.user,
         )
 
     def form_valid(self, form: ModelForm) -> HttpResponse:
-        """Assign the authenticated user as the part owner before saving."""
+        """Assign ownership to the authenticated user before saving."""
 
         form.instance.owner = self.request.user
         return super().form_valid(form)
 
 
-class PartListView(LoginRequiredMixin, OwnedObjectMixin, ListView):
-    """List parts belonging to the authenticated user."""
+class MaintenanceItemListView(
+    LoginRequiredMixin,
+    AvailableMaintenanceItemsMixin,
+    ListView,
+):
+    """List predefined and custom maintenance items available to the user."""
 
-    model = Part
-    template_name = "maintenance/part_list.html"
-    context_object_name = "parts"
-
-
-class PartDetailView(LoginRequiredMixin, OwnedObjectMixin, DetailView):
-    """Display the details of a part owned by the current user."""
-
-    model = Part
-    template_name = "maintenance/part_detail.html"
-    context_object_name = "part"
+    model = MaintenanceItem
+    template_name = "maintenance/maintenance_item_list.html"
+    context_object_name = "maintenance_items"
 
 
-class PartUpdateView(
+class MaintenanceItemDetailView(
+    LoginRequiredMixin,
+    AvailableMaintenanceItemsMixin,
+    DetailView,
+):
+    """Display a predefined or user-owned maintenance item."""
+
+    model = MaintenanceItem
+    template_name = "maintenance/maintenance_item_detail.html"
+    context_object_name = "maintenance_item"
+
+
+class MaintenanceItemUpdateView(
     LoginRequiredMixin,
     RedirectToDetailMixin,
+    MaintenanceItemProtectionMixin,
     OwnedObjectMixin,
+    UserFormKwargsMixin,
+    MaintenanceItemIntegrityMixin,
     UpdateView,
 ):
-    """Update a part in the current user's personal catalog."""
+    """Update an unused custom maintenance item owned by the current user."""
 
-    model = Part
-    form_class = PartForm
-    template_name = "maintenance/part_form.html"
-    context_object_name = "part"
-    detail_url_name = "maintenance:part-detail"
+    model = MaintenanceItem
+    form_class = MaintenanceItemForm
+    template_name = "maintenance/maintenance_item_form.html"
+    context_object_name = "maintenance_item"
+    detail_url_name = "maintenance:maintenance-item-detail"
 
 
-class PartDeleteView(LoginRequiredMixin, OwnedObjectMixin, DeleteView):
-    """Remove a part from the user's personal catalog after confirmation."""
+class MaintenanceItemDeleteView(
+    LoginRequiredMixin,
+    MaintenanceItemProtectionMixin,
+    OwnedObjectMixin,
+    DeleteView,
+):
+    """Delete an unused custom maintenance item owned by the current user."""
 
-    model = Part
-    template_name = "maintenance/part_confirm_delete.html"
-    context_object_name = "part"
-    success_url = reverse_lazy("maintenance:part-list")
+    model = MaintenanceItem
+    template_name = "maintenance/maintenance_item_confirm_delete.html"
+    context_object_name = "maintenance_item"
+    success_url = reverse_lazy("maintenance:maintenance-item-list")

@@ -4,15 +4,16 @@ from typing import Any, ClassVar
 from django import forms
 from django.utils import timezone
 
-from maintenance.helpers.form_mixins import UserPartsQuerysetMixin
-from maintenance.models import MaintenanceSchedule, Part, ServiceRecord
+from accounts.models import Account
+from maintenance.helpers.form_mixins import MaintenanceItemQuerysetMixin
+from maintenance.models import MaintenanceItem, MaintenanceSchedule, ServiceRecord
 
 
-class ServiceRecordForm(UserPartsQuerysetMixin, forms.ModelForm):
+class ServiceRecordForm(MaintenanceItemQuerysetMixin, forms.ModelForm):
     """Handle the creation and editing of vehicle service records.
 
-    Restrict part selection to the user's personal catalog and prevent
-    service records from being dated in the future.
+    Restrict maintenance item selection to predefined and user-owned items
+    and prevent service records from being dated in the future.
     """
 
     class Meta:
@@ -23,7 +24,7 @@ class ServiceRecordForm(UserPartsQuerysetMixin, forms.ModelForm):
             "mileage",
             "service_date",
             "cost",
-            "parts",
+            "maintenance_items",
         )
         widgets: ClassVar[dict[str, forms.Widget]] = {
             "service_date": forms.DateInput(
@@ -32,7 +33,7 @@ class ServiceRecordForm(UserPartsQuerysetMixin, forms.ModelForm):
                 },
                 format="%Y-%m-%d",
             ),
-            "parts": forms.CheckboxSelectMultiple(),
+            "maintenance_items": forms.CheckboxSelectMultiple(),
         }
 
     def clean_service_date(self) -> date:
@@ -46,11 +47,11 @@ class ServiceRecordForm(UserPartsQuerysetMixin, forms.ModelForm):
         return service_date
 
 
-class MaintenanceScheduleForm(UserPartsQuerysetMixin, forms.ModelForm):
+class MaintenanceScheduleForm(MaintenanceItemQuerysetMixin, forms.ModelForm):
     """Handle the creation and editing of vehicle maintenance schedules.
 
-    Require a due date, due mileage or both, and restrict part selection
-    to the user's personal catalog.
+    Require a due date, due mileage or both, and restrict maintenance item
+    selection to predefined and user-owned items.
     """
 
     class Meta:
@@ -61,7 +62,7 @@ class MaintenanceScheduleForm(UserPartsQuerysetMixin, forms.ModelForm):
             "due_date",
             "due_mileage",
             "is_completed",
-            "parts",
+            "maintenance_items",
         )
 
         widgets: ClassVar[dict[str, forms.Widget]] = {
@@ -69,7 +70,7 @@ class MaintenanceScheduleForm(UserPartsQuerysetMixin, forms.ModelForm):
                 attrs={"type": "date"},
                 format="%Y-%m-%d",
             ),
-            "parts": forms.CheckboxSelectMultiple(),
+            "maintenance_items": forms.CheckboxSelectMultiple(),
         }
 
     def clean(self) -> dict[str, Any]:
@@ -86,13 +87,48 @@ class MaintenanceScheduleForm(UserPartsQuerysetMixin, forms.ModelForm):
         return cleaned_data
 
 
-class PartForm(forms.ModelForm):
-    """Provide a form for creating and updating vehicle parts."""
+class MaintenanceItemForm(forms.ModelForm):
+    """Handle the creation and editing of custom maintenance items.
+
+    Allow users to extend the predefined maintenance checklist with
+    their own maintenance operations.
+    """
+
+    def __init__(
+        self,
+        *args: Any,
+        user: Account,
+        **kwargs: Any,
+    ) -> None:
+        """Initialize the form with the user responsible for the maintenance item."""
+
+        super().__init__(*args, **kwargs)
+
+        self.user = user
+
+    def clean_name(self) -> str:
+        """Validate the maintenance item name for uniqueness within the user's checklist.
+
+        Exclude the current instance when updating an existing item.
+        """
+
+        name = self.cleaned_data["name"]
+
+        queryset = MaintenanceItem.objects.filter(
+            owner=self.user,
+            name__iexact=name,
+        )
+
+        if self.instance.pk is not None:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
+            raise forms.ValidationError(
+                "A maintenance item with this name already exists in your checklist."
+            )
+
+        return name
 
     class Meta:
-        model = Part
-        fields = (
-            "name",
-            "manufacturer",
-            "part_number",
-        )
+        model = MaintenanceItem
+        fields = ("name", "category")
