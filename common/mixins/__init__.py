@@ -13,6 +13,7 @@ from .redirects import (
 from .subscriptions import SubscriptionQuotaMixin
 
 __all__ = (
+    "OwnedObjectMixin",
     "OwnedVehicleRecordMixin",
     "RedirectToDetailMixin",
     "RedirectToVehicleListMixin",
@@ -20,6 +21,5 @@ __all__ = (
     "UserFormKwargsMixin",
     "VehicleCreateMixin",
     "VehicleListMixin",
-    "OwnedObjectMixin",
     "VehicleScopedMixin",
 )
