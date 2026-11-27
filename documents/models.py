@@ -56,6 +56,10 @@ class VehicleDocument(CreatedAtModel):
                 "use_document_reminders",
                 "Can use automatic reminders.",
             ),
+            (
+                "customize_document_reminders",
+                "Can customize document reminder periods.",
+            ),
         )
 
     def __str__(self) -> str:
@@ -77,10 +81,15 @@ class VehicleDocument(CreatedAtModel):
         expiration date has not passed.
         """
 
+        return self.is_reminder_due(self.reminder_days_before)
+
+    def is_reminder_due(self, days_before: int) -> bool:
+        """Determine whether the document is within the specified reminder window."""
+
         today = timezone.localdate()
 
         reminder_date = self.expires_on - timedelta(
-            days=self.reminder_days_before,
+            days=days_before,
         )
 
         return self.notifications_enabled and reminder_date <= today <= self.expires_on

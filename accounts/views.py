@@ -250,6 +250,10 @@ class AccountDashboardView(LoginRequiredMixin, TemplateView):
                 remaining = None
                 percentage = None
 
+            elif limit == 0:
+                remaining = 0
+                percentage = None
+
             else:
                 remaining = max(0, limit - used)
                 percentage = round((used / limit) * 100, 2)

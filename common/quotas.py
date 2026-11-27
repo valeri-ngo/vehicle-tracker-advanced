@@ -7,7 +7,7 @@ SUBSCRIPTION_LIMITS: Mapping[str, Mapping[str, int | None]] = {
         "vehicles": 1,
         "service_records": 15,
         "odometer_entries": 30,
-        "maintenance_schedules": 2,
+        "maintenance_schedules": 0,
         "maintenance_items": 10,
         "documents": 2,
     },

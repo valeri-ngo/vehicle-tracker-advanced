@@ -13,6 +13,7 @@ from common.mixins import (
     RedirectToDetailMixin,
     RedirectToVehicleListMixin,
     SubscriptionQuotaMixin,
+    UserFormKwargsMixin,
     VehicleCreateMixin,
     VehicleListMixin,
 )
@@ -23,6 +24,7 @@ from documents.models import VehicleDocument
 class VehicleDocumentCreateView(
     LoginRequiredMixin,
     SubscriptionQuotaMixin,
+    UserFormKwargsMixin,
     VehicleCreateMixin,
     CreateView,
 ):
@@ -71,6 +73,7 @@ class VehicleDocumentUpdateView(
     LoginRequiredMixin,
     RedirectToDetailMixin,
     OwnedVehicleRecordMixin,
+    UserFormKwargsMixin,
     UpdateView,
 ):
     """Update document metadata owned by the current user.

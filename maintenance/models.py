@@ -104,6 +104,12 @@ class MaintenanceSchedule(ServiceDetailsModel, CreatedAtModel):
                 name="maintenance_schedule_requires_date_or_mileage",
             ),
         )
+        permissions = (
+            (
+                "manage_maintenance_schedules",
+                "Can manage maintenance schedules.",
+            ),
+        )
 
 
 class MaintenanceItem(CreatedAtModel):

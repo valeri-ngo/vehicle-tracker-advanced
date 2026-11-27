@@ -1,4 +1,4 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.db.models import QuerySet
 from django.forms.models import ModelForm
 from django.http import HttpResponse
@@ -117,6 +117,7 @@ class ServiceRecordDeleteView(
 
 class MaintenanceScheduleCreateView(
     LoginRequiredMixin,
+    PermissionRequiredMixin,
     MaintenanceScheduleQuotaMixin,
     UserFormKwargsMixin,
     VehicleCreateMixin,
@@ -124,12 +125,13 @@ class MaintenanceScheduleCreateView(
 ):
     """Create a maintenance schedule for a vehicle owned by the user.
 
-    Enforce subscription limits only when creating an incomplete
-    maintenance schedule.
+    Require maintenance scheduling permission and enforce subscription
+    limits when creating an incomplete schedule.
     """
 
     form_class = MaintenanceScheduleForm
     template_name = "maintenance/maintenance_schedule_form.html"
+    permission_required = "maintenance.manage_maintenance_schedules"
 
     def should_check_quota(self, form: ModelForm) -> bool:
         """Check the quota only when creating an incomplete schedule."""
@@ -165,6 +167,7 @@ class MaintenanceScheduleDetailView(
 
 class MaintenanceScheduleUpdateView(
     LoginRequiredMixin,
+    PermissionRequiredMixin,
     MaintenanceScheduleQuotaMixin,
     UserFormKwargsMixin,
     RedirectToDetailMixin,
@@ -173,8 +176,8 @@ class MaintenanceScheduleUpdateView(
 ):
     """Update a maintenance schedule owned by the current user.
 
-    Enforce subscription limits when reopening a previously completed
-    maintenance schedule.
+    Require maintenance scheduling permission and enforce subscription
+    limits when reopening a completed schedule.
     """
 
     model = MaintenanceSchedule
@@ -182,6 +185,7 @@ class MaintenanceScheduleUpdateView(
     template_name = "maintenance/maintenance_schedule_form.html"
     context_object_name = "maintenance_schedule"
     detail_url_name = "maintenance:maintenance-schedule-detail"
+    permission_required = "maintenance.manage_maintenance_schedules"
 
     def should_check_quota(self, form: ModelForm) -> bool:
         """Check the quota when reopening a completed maintenance schedule."""
@@ -209,16 +213,18 @@ class MaintenanceScheduleUpdateView(
 
 class MaintenanceScheduleDeleteView(
     LoginRequiredMixin,
+    PermissionRequiredMixin,
     RedirectToVehicleListMixin,
     OwnedVehicleRecordMixin,
     DeleteView,
 ):
-    """Delete an owned maintenance schedule after user confirmation."""
+    """Delete an owned maintenance schedule with the required permission."""
 
     model = MaintenanceSchedule
     template_name = "maintenance/maintenance_schedule_delete.html"
     context_object_name = "maintenance_schedule"
     vehicle_list_url_name = "maintenance:maintenance-schedule-list"
+    permission_required = "maintenance.manage_maintenance_schedules"
 
 
 # --------------------------- MAINTENANCE ITEMS ---------------------------
