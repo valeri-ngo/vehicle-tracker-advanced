@@ -28,9 +28,16 @@ class VehicleCreateForm(forms.ModelForm):
 class VehicleUpdateForm(forms.ModelForm):
     """Allow users to update the identification details of an existing vehicle.
 
-    Exclude the current mileage to ensure that mileage changes are
-    recorded through the odometer history.
+    Display the current mileage as a disabled field while restricting mileage
+    updates to the odometer history.
     """
+
+    display_mileage = forms.IntegerField(
+        label="Current mileage (km)",
+        disabled=True,
+        required=False,
+        help_text="Mileage can only be updated through the odometer history."
+    )
 
     class Meta:
         model = Vehicle
@@ -40,14 +47,21 @@ class VehicleUpdateForm(forms.ModelForm):
             "year",
         )
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize the form with the vehicle's current mileage for display."""
+
+        super().__init__(*args, **kwargs)
+
+        if self.instance.pk is not None:
+            self.initial["display_mileage"] = self.instance.current_mileage
+
 
 class OdometerEntryForm(forms.ModelForm):
-    class OdometerEntryForm(forms.ModelForm):
-        """Handle the submission of odometer readings for a specific vehicle.
+    """Handle the submission of odometer readings for a specific vehicle.
 
-        Reject future timestamps and validate mileage against the existing
-        odometer history to maintain chronological consistency.
-        """
+    Reject future timestamps and validate mileage against the existing
+    odometer history to maintain chronological consistency.
+    """
 
     class Meta:
         model = OdometerEntry
