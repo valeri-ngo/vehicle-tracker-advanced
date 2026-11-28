@@ -152,4 +152,8 @@ CELERY_BEAT_SCHEDULE = {
         "task": "notifications.tasks.check_document_reminders",
         "schedule": crontab(hour=9, minute=0),
     },
+    "notifications.tasks.check_maintenance_reminders": {
+        "task": "notifications.tasks.check_maintenance_reminders",
+        "schedule": crontab(hour=9, minute=0),
+    },
 }

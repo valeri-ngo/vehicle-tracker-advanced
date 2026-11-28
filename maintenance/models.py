@@ -1,9 +1,11 @@
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models.functions import Lower
+from django.utils import timezone
 
 from common.basic_models import CreatedAtModel
 from maintenance.helpers.abstract_models import ServiceDetailsModel
@@ -87,6 +89,66 @@ class MaintenanceSchedule(ServiceDetailsModel, CreatedAtModel):
     is_completed = models.BooleanField(
         default=False,
     )
+
+    @property
+    def is_overdue(self) -> bool:
+        """Determine whether an incomplete maintenance schedule is overdue."""
+
+        if self.is_completed:
+            return False
+
+        today: date = timezone.localdate()
+        vehicle_mileage: int = self.vehicle.current_mileage
+
+        is_date_overdue: bool = self.due_date is not None and self.due_date < today
+        is_mileage_overdue: bool = (
+            self.due_mileage is not None and self.due_mileage < vehicle_mileage
+        )
+
+        return is_date_overdue or is_mileage_overdue
+
+    @property
+    def is_due(self) -> bool:
+        """Determine whether an incomplete maintenance schedule is due."""
+
+        if self.is_completed:
+            return False
+
+        today: date = timezone.localdate()
+        vehicle_mileage: int = self.vehicle.current_mileage
+
+        is_date_due: bool = self.due_date is not None and self.due_date <= today
+        is_mileage_due: bool = (
+            self.due_mileage is not None and self.due_mileage <= vehicle_mileage
+        )
+
+        return is_date_due or is_mileage_due
+
+    def is_reminder_due(
+        self,
+        days_before: int = 7,
+        mileage_before: int = 1500,
+    ) -> bool:
+        """Determine whether an incomplete schedule is within its reminder thresholds."""
+
+        if self.is_completed:
+            return False
+
+        today: date = timezone.localdate()
+        vehicle_mileage: int = self.vehicle.current_mileage
+
+        date_threshold: date = today + timedelta(days=days_before)
+        mileage_threshold: int = vehicle_mileage + mileage_before
+
+        is_date_reminder_due: bool = (
+            self.due_date is not None and self.due_date <= date_threshold
+        )
+
+        is_mileage_reminder_due: bool = (
+            self.due_mileage is not None and self.due_mileage <= mileage_threshold
+        )
+
+        return is_date_reminder_due or is_mileage_reminder_due
 
     def __str__(self) -> str:
         """Return the vehicle and scheduled service type as a readable string."""

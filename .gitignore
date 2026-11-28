@@ -33,3 +33,6 @@ media/
 .DS_Store
 Thumbs.db
 TODO.md
+
+# Celery Beat
+celerybeat-schedule*
